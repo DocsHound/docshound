@@ -1,0 +1,10 @@
+{
+  "name": "docshound",
+  "version": "0.0.1",
+  "description": "Open source workplace search and hub.",
+  "main": "src/indexx.ts",
+  "repository": "https://github.com/DocsHound/docshound",
+  "author": "DocsHound Team",
+  "license": "AGPL-3.0",
+  "private": false
+}
