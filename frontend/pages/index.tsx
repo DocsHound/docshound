@@ -31,6 +31,8 @@ import {
   BsSunsetFill,
 } from 'react-icons/bs';
 import { Search2Icon } from '@chakra-ui/icons';
+import { NextApiRequest } from 'next';
+import { authServerSideProps } from 'shared/libs/supabase';
 
 const results: Array<ResultItemProps> = [
   {
@@ -156,15 +158,17 @@ const ResultDesc = ({ desc }: { desc: ResultDesc }) => {
   let textElems: Array<ReactElement> = [];
   for (const { s, e } of desc.bold) {
     if (s !== prev) {
-      textElems.push(<span>{desc.text.slice(prev, s)}</span>);
+      textElems.push(<span key={prev}>{desc.text.slice(prev, s)}</span>);
     }
     textElems.push(
-      <span style={{ fontWeight: 'bold' }}>{desc.text.slice(s, e)}</span>
+      <span key={s} style={{ fontWeight: 'bold' }}>
+        {desc.text.slice(s, e)}
+      </span>
     );
     prev = e;
   }
   if (desc.text.length !== prev) {
-    textElems.push(<span>{desc.text.slice(prev)}</span>);
+    textElems.push(<span key={prev}>{desc.text.slice(prev)}</span>);
   }
 
   return <Text>{textElems}</Text>;
@@ -262,6 +266,7 @@ const Home: NextPageWithLayout = () => {
               colorScheme="brand"
               w="100%"
               justifyContent="flex-start"
+              px="5"
             >
               All
             </Button>
@@ -273,6 +278,7 @@ const Home: NextPageWithLayout = () => {
                 colorScheme="brand"
                 w="100%"
                 justifyContent="flex-start"
+                px="5"
               >
                 {SOURCE_NAME[source]}
               </Button>
@@ -328,5 +334,9 @@ const HeaderCenter = () => {
 Home.getLayout = (page) => (
   <Dashboard headerCenter={HeaderCenter()}>{page}</Dashboard>
 );
+
+export const getServerSideProps = ({ req }: { req: NextApiRequest }) => {
+  return authServerSideProps(req);
+};
 
 export default Home;

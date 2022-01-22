@@ -7,7 +7,7 @@ import {
   useColorModeValue,
   Tooltip,
 } from '@chakra-ui/react';
-import { ReactElement } from 'react';
+import { ReactElement, useEffect, useState } from 'react';
 import { BsChevronBarLeft, BsChevronBarRight, BsList } from 'react-icons/bs';
 
 interface Props {
@@ -29,13 +29,15 @@ const Header = ({
   headerCenter,
   headerRight,
 }: Props) => {
-  const headerBorder = useColorModeValue('gray.200', 'gray.600');
+  //   const headerBorder = useColorModeValue('gray.200', 'gray.600');
 
   return (
     <Flex
+      id="test-123"
       p="4"
+      flexDirection="row"
       justifyContent="space-between"
-      borderColor={headerBorder}
+      //   borderColor={headerBorder}
       borderBottomWidth="1px"
     >
       <Box>

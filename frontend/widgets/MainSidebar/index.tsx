@@ -19,15 +19,21 @@ import {
   Badge,
   Text,
   Image,
+  MenuButton,
+  Menu,
+  MenuItem,
+  MenuList,
 } from '@chakra-ui/react';
 import { user } from 'mocks/data';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ReactElement, ReactNode } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { BsMoonFill, BsSunFill } from 'react-icons/bs';
+import { BsFillDoorOpenFill, BsMoonFill, BsSunFill } from 'react-icons/bs';
 import { FaLink } from 'react-icons/fa';
 import { isMac } from 'shared/platform';
+import useToast from 'hooks/useToast';
+import { supabase } from 'shared/libs/supabase';
 
 interface Props {
   onClose: () => void;
@@ -41,28 +47,42 @@ interface Props {
 interface SidebarButtonProps {
   collapsed: boolean;
   text: string;
-  tooltipLabel?: ReactNode | string;
   icon: ReactElement;
   onClick: () => void;
+  tooltipLabel?: ReactNode | string;
+  menuButton?: boolean;
 }
 
 const SidebarButton = ({
   collapsed,
   text,
-  tooltipLabel,
   icon,
   onClick,
+  tooltipLabel,
+  menuButton,
 }: SidebarButtonProps) => {
   return (
     <Tooltip label={tooltipLabel ?? text} placement="right" fontSize="xs">
       {collapsed ? (
-        <IconButton
-          variant="ghost"
-          aria-label={text}
-          icon={icon}
-          onClick={onClick}
-          size="md"
-        ></IconButton>
+        menuButton ? (
+          <MenuButton
+            as={IconButton}
+            variant="ghost"
+            aria-label={text}
+            icon={icon}
+            size="md"
+          />
+        ) : (
+          <IconButton
+            variant="ghost"
+            aria-label={text}
+            icon={icon}
+            onClick={onClick}
+            size="md"
+          ></IconButton>
+        )
+      ) : menuButton ? (
+        <MenuButton leftIcon={icon} w="100%" variant="ghost" size="md" />
       ) : (
         <Button
           leftIcon={icon}
@@ -90,6 +110,7 @@ const SidebarContent = ({
   const openSearch = () => {
     router.push('/');
   };
+  const toast = useToast();
 
   useHotkeys('cmd+k, ctrl+k', (e) => {
     e.preventDefault();
@@ -104,10 +125,14 @@ const SidebarContent = ({
         <Link href="/" passHref>
           <a>
             {collapsed ? (
-              <Image src="/docshound.svg" alt="Docshound" maxW="48px" />
+              <Image src="/docshound-square.svg" alt="Docshound" maxW="48px" />
             ) : (
               <HStack>
-                <Image src="/docshound.svg" alt="Docshound" maxW="48px" />
+                <Image
+                  src="/docshound-square.svg"
+                  alt="Docshound"
+                  maxW="48px"
+                />
                 <Text fontWeight="bold">
                   {user.firstName} {user.lastName}
                 </Text>
@@ -137,6 +162,7 @@ const SidebarContent = ({
 
       {/* Bottom buttons */}
       <VStack>
+        {/* Integrations */}
         <SidebarButton
           collapsed={collapsed}
           text="Integrations"
@@ -146,6 +172,7 @@ const SidebarContent = ({
             onCollapse();
           }}
         />
+        {/* Light/dark mode */}
         <SidebarButton
           collapsed={collapsed}
           text={colorMode === 'dark' ? 'Light mode' : 'Dark mode'}
@@ -155,20 +182,40 @@ const SidebarContent = ({
             onCollapse();
           }}
         />
-        <SidebarButton
-          collapsed={collapsed}
-          text="Account"
-          icon={
-            <Avatar
-              size="sm"
-              name={`${user.firstName} ${user.lastName}`}
-              src={user.avatar}
-            />
-          }
-          onClick={() => {
-            onCollapse();
-          }}
-        />
+        <Menu>
+          <SidebarButton
+            collapsed={collapsed}
+            text="Account"
+            icon={
+              <Avatar
+                size="sm"
+                name={`${user.firstName} ${user.lastName}`}
+                src={user.avatar}
+              />
+            }
+            menuButton={true}
+            onClick={() => {}}
+          />
+
+          <MenuList>
+            <MenuItem
+              icon={<BsFillDoorOpenFill />}
+              onClick={async () => {
+                const { error } = await supabase.auth.signOut();
+                if (error) {
+                  toast({
+                    title: 'Could not sign out.',
+                    description:
+                      (error as any).error_description ?? error.message,
+                    status: 'error',
+                  });
+                }
+              }}
+            >
+              Sign out
+            </MenuItem>
+          </MenuList>
+        </Menu>
       </VStack>
     </Flex>
   );
