@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator typegraphql {
+  provider = "typegraphql-prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AppRole {
+  USER
+  ADMIN
+}
+
+// Remember to update handle_new_user() function trigger OR set a default value
+// when adding a new field here.
+model User {
+  id   String     @id @db.Uuid
+  role AppRole    @default(USER)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt @default(now())
+
+  apiCredentials UserApiCredential[]
+}
+
+model GlobalApiCredential {
+  id                   Int @id @default(autoincrement())
+  provider             String @unique
+  encryptionIV         String
+  encryptedCredentials String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt @default(now())
+}
+
+model UserApiCredential {
+  id                   Int @id @default(autoincrement())
+  provider             String 
+  user                User @relation(fields: [userId], references: [id])
+  userId      String @db.Uuid
+  encryptionIV         String
+  encryptedCredentials String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt @default(now())
+
+  @@unique([userId, provider])
+}

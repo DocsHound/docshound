@@ -7,6 +7,13 @@ const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 export const supabase = createClient(URL, ANON_KEY);
 
+export const makeSRoleSupabase = () => {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+    process.env.SUPABASE_SERVICE_ROLE_KEY as string
+  );
+};
+
 export const authServerSideProps = async (req: NextApiRequest) => {
   const { user } = await supabase.auth.api.getUserByCookie(req);
 

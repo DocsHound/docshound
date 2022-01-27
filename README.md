@@ -8,5 +8,5 @@ DocsHound is an open-source workplace search and work hub platform. It connects 
 
 - `localhost:3000`: Supabase dashboard
 - `localhost:3001`: DocsHound frontend
-- `localhost:6000`: DocsHound API backend
+- `localhost:5500`: DocsHound API backend
 - `localhost:8000`: Kong (Supabase) backend

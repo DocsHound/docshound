@@ -27,13 +27,20 @@ import {
 import { user } from 'mocks/data';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { ReactElement, ReactNode } from 'react';
+import { ReactElement, ReactNode, useContext } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { BsFillDoorOpenFill, BsMoonFill, BsSunFill } from 'react-icons/bs';
+import {
+  BsFillDoorOpenFill,
+  BsFillGearFill,
+  BsMoonFill,
+  BsSunFill,
+} from 'react-icons/bs';
 import { FaLink } from 'react-icons/fa';
-import { isMac } from 'shared/platform';
+import { isMac } from 'shared/libs/platform';
 import useToast from 'hooks/useToast';
 import { supabase } from 'shared/libs/supabase';
+import { AppUserContext } from 'contexts/AppUser';
+import { AppRole } from 'shared/libs/types';
 
 interface Props {
   onClose: () => void;
@@ -82,7 +89,13 @@ const SidebarButton = ({
           ></IconButton>
         )
       ) : menuButton ? (
-        <MenuButton leftIcon={icon} w="100%" variant="ghost" size="md" />
+        <MenuButton
+          as={Button}
+          leftIcon={icon}
+          w="100%"
+          variant="ghost"
+          size="md"
+        />
       ) : (
         <Button
           leftIcon={icon}
@@ -111,6 +124,7 @@ const SidebarContent = ({
     router.push('/');
   };
   const toast = useToast();
+  const appUser = useContext(AppUserContext);
 
   useHotkeys('cmd+k, ctrl+k', (e) => {
     e.preventDefault();
@@ -182,6 +196,21 @@ const SidebarContent = ({
             onCollapse();
           }}
         />
+
+        {/* Admin mode */}
+        {appUser?.role === AppRole.ADMIN && (
+          <SidebarButton
+            collapsed={collapsed}
+            text={'Workspace Settings'}
+            icon={<BsFillGearFill />}
+            onClick={() => {
+              router.push('/settings');
+              onCollapse();
+            }}
+          />
+        )}
+
+        {/* User popover menu */}
         <Menu>
           <SidebarButton
             collapsed={collapsed}

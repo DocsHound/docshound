@@ -15,7 +15,7 @@ import {
   Button,
 } from '@chakra-ui/react';
 import NextLink from 'next/link';
-import { ReactElement, useLayoutEffect, useRef, useState } from 'react';
+import { ReactElement, useEffect, useRef, useState } from 'react';
 import { NextPageWithLayout } from 'pages/types';
 import Dashboard from 'layouts/Dashboard';
 import { user, workspace } from 'mocks/data';
@@ -219,9 +219,9 @@ const Home: NextPageWithLayout = () => {
 
   const searchRef = useRef<HTMLInputElement>(null);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     searchRef.current?.focus();
-  });
+  }, []);
 
   return (
     <Box>

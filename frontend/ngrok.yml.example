@@ -1,0 +1,8 @@
+authtoken: <YOUR AUTH TOKEN>
+tunnels:
+  supabase:
+    proto: http
+    addr: 3000
+  nextjs:
+    proto: http
+    addr: 3001

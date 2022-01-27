@@ -11,9 +11,11 @@ cp .example.env .env
 
 Steps followed:
 
-1. Copied `.env.example` to `.env` under `docker/`, updated the secrets at the top
-2. Run `docker-compose up`, should download images + start container
-3. Verify `http://localhost:3000` shows Supabase dashboard
+1. Copied `.env.example` to `.env` under `docker/`
+2. Generate `JWT_SECRET` (e.g., `openssl rand 32 | base64`) and [re-generate ANON + SERVICE_ROLE keys](https://supabase.com/docs/guides/hosting/overview#api-keys)
+   - Update ANON & SERVICE_ROLE keys in BOTH `.env` and `volumes/api/kong.yml`!
+3. Run `docker-compose up`, should download images + start container
+4. Verify `http://localhost:3000` shows Supabase dashboard
 
 ### Authentication/OAuth
 

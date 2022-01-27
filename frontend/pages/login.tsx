@@ -113,10 +113,14 @@ const Login = ({ loginProviders }: { loginProviders: string[] }) => {
   const handleLogin = async (provider: Provider) => {
     try {
       setLoading(true);
-      const { user, session, error } = await supabase.auth.signIn({ provider });
-      if (error) throw error;
+      const { user, session, error } = await supabase.auth.signIn(
+        { provider },
+        // Required when supabase on different domain.
+        { redirectTo: `${window.location.protocol}//${window.location.host}` }
+      );
       // NB: this proceeds shortly before redirecting to OAuth Screen, not after a success!
       console.debug(`signing in with ${provider}: ${user}, ${session}`);
+      if (error) throw error;
     } catch (err: any) {
       toast({
         title: `Could not sign-in with ${capitalize(provider)}.`,

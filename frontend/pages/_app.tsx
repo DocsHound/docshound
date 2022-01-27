@@ -5,7 +5,10 @@ import { AppPropsWithLayout } from 'pages/types';
 import { useRouter } from 'next/router';
 import { rtlLocales } from 'constants/language';
 import useAuth from 'hooks/useAuth';
-import { ReactElement, ReactNode } from 'react';
+import { ReactNode } from 'react';
+import { ApolloProvider } from '@apollo/client';
+import { client } from 'shared/libs/apollo';
+import { AppUserContext, useAppUser } from 'contexts/AppUser';
 
 function MyApp({ Component, pageProps }: AppPropsWithLayout) {
   const getLayout = Component.getLayout ?? ((page) => page);
@@ -13,16 +16,23 @@ function MyApp({ Component, pageProps }: AppPropsWithLayout) {
   const direction = locale && rtlLocales.includes(locale) ? 'rtl' : 'ltr';
 
   return (
-    <ChakraProvider theme={extendTheme({ direction }, theme)}>
-      <Inner>{getLayout(<Component {...pageProps} />)}</Inner>
-    </ChakraProvider>
+    <ApolloProvider client={client}>
+      <ChakraProvider theme={extendTheme({ direction }, theme)}>
+        <Inner>{getLayout(<Component {...pageProps} />)}</Inner>
+      </ChakraProvider>
+    </ApolloProvider>
   );
 }
 
 const Inner = ({ children }: { children: ReactNode }) => {
   // This must go here so we can listen to auth changes everywhere.
-  useAuth();
-  return <>{children}</>;
+  const user = useAuth();
+  const appUser = useAppUser(user);
+  return (
+    <AppUserContext.Provider value={appUser}>
+      {children}
+    </AppUserContext.Provider>
+  );
 };
 
 export default MyApp;

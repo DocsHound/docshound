@@ -1,13 +1,5 @@
-import {
-  Box,
-  Center,
-  IconButton,
-  Text,
-  Flex,
-  useColorModeValue,
-  Tooltip,
-} from '@chakra-ui/react';
-import { ReactElement, useEffect, useState } from 'react';
+import { Box, IconButton, Flex, Tooltip } from '@chakra-ui/react';
+import { ReactElement } from 'react';
 import { BsChevronBarLeft, BsChevronBarRight, BsList } from 'react-icons/bs';
 
 interface Props {

@@ -1,6 +1,14 @@
-const REQUIRED_ENVVARS: string[] = ['PORT'];
+const REQUIRED_ENVVARS: string[] = [
+  'API_CRED_AES_KEY',
+  'DATABASE_URL',
+  'NODE_ENV',
+  'PORT',
+  'SERVER_ADMIN_SECRET',
+];
 
 const OPTIONAL_ENVVARS: string[] = [
+  'SSL_PATH',
+
   // SLACK
   'SLACK_BOT_TOKEN',
   'SLACK_SIGNING_SECRET',

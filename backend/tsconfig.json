@@ -1,25 +1,27 @@
 {
   "compilerOptions": {
     "target": "es2018",
-    // Allow absolute imports (e.g., styles/theme instead of ../styles/theme)
-    "baseUrl": ".",
-    "paths": {
-      "*": ["./*"]
-    },
+    "module": "commonjs",
     "lib": ["es2018", "esnext.asynciterable"],
-    "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "commonjs",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "incremental": true
+    "incremental": true,
+    // Required by typegraphql
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "node_modules/xdg-basedir/apollo.ts",
+    "cli/gen_supabase_keys.js"
+  ],
   "exclude": ["node_modules"]
 }
