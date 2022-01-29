@@ -10,7 +10,8 @@
     "dev": "./dev_start.sh",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate": "NODE_TLS_REJECT_UNAUTHORIZED=0 graphql-codegen --config codegen.yml"
   },
   "dependencies": {
     "@apollo/client": "^3.5.7",
@@ -22,8 +23,10 @@
     "form-data": "^4.0.0",
     "framer-motion": "^5",
     "graphql": "^16.2.0",
+    "lodash": "^4.17.21",
     "next": "12.0.9",
     "node-fetch": "^3.2.0",
+    "pluralize": "^8.0.0",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-hotkeys-hook": "^3.4.4",
@@ -31,7 +34,13 @@
     "swr": "^1.1.2"
   },
   "devDependencies": {
+    "@graphql-codegen/add": "^3.1.1",
+    "@graphql-codegen/cli": "^2.4.0",
+    "@graphql-codegen/typescript": "^2.4.2",
+    "@graphql-codegen/typescript-operations": "^2.2.2",
+    "@graphql-codegen/typescript-react-apollo": "^3.2.4",
     "@types/node": "17.0.8",
+    "@types/pluralize": "^0.0.29",
     "@types/react": "17.0.38",
     "eslint": "8.7.0",
     "eslint-config-next": "12.0.8",

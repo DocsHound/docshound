@@ -8,10 +8,10 @@ import {
   Flex,
 } from '@chakra-ui/react';
 import { ReactNode } from 'react';
-import { Integration } from './common';
+import { Integration } from 'shared/libs/types';
 
 const IntegrationCard = ({
-  integration: { name, desc, logo, bgColor },
+  integration: { name, desc, logoURI, bgColor },
   children,
 }: {
   integration: Integration;
@@ -32,7 +32,7 @@ const IntegrationCard = ({
       >
         <AspectRatio w="128px" ratio={1} borderRadius="lg" bg={bgColor}>
           <Center>
-            <Image src={logo} alt={name} width="48px" />
+            <Image src={logoURI} alt={name} width="48px" />
           </Center>
         </AspectRatio>
         <Box p="6" pb="0" textAlign="center">

@@ -7,9 +7,8 @@ import {
   Wrap,
   WrapItem,
   VStack,
-  useToast,
+  AlertStatus,
 } from '@chakra-ui/react';
-import { integrations } from 'components/IntegrationCard/common';
 import { UserIntegrationCard } from 'components/IntegrationCard';
 import Dashboard from 'layouts/Dashboard';
 import { workspace } from 'mocks/data';
@@ -20,27 +19,22 @@ import { NextPageWithLayout } from 'pages/types';
 import { useEffect } from 'react';
 import { FaLink } from 'react-icons/fa';
 import { authServerSideProps } from 'shared/libs/supabase';
+import useToast from 'hooks/useToast';
+import { Provider } from 'generated/graphql_types';
+import { integrations } from 'constants/integrations';
 
 const Integrations: NextPageWithLayout = () => {
   const router = useRouter();
   const toast = useToast();
 
-  // Close window on callback.
   useEffect(() => {
-    if (router.query.redirect === 'false') {
-      window.close();
-    }
-  }, [router.query.redirect]);
-
-  useEffect(() => {
-    if (router.query.error_message) {
+    if (router.query.message) {
       toast({
-        title: 'Could not connect to integration',
-        description: router.query.error_message,
-        status: 'error',
+        title: router.query.message,
+        status: router.query.status as AlertStatus,
       });
     }
-  }, [toast, router.query.error_message]);
+  }, [toast, router.query.message, router.query.status]);
 
   return (
     <Box>
@@ -63,9 +57,10 @@ const Integrations: NextPageWithLayout = () => {
           </Text>
         </VStack>
         <Wrap spacing="4" justify="start">
-          {integrations.map((integration) => (
+          {Object.entries(integrations).map(([provider, integration]) => (
             <WrapItem key={integration.name}>
               <UserIntegrationCard
+                provider={provider as Provider}
                 integration={integration}
               ></UserIntegrationCard>
             </WrapItem>

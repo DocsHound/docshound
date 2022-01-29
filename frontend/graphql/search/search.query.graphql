@@ -1,0 +1,11 @@
+query search($query: String!) {
+  search(query: $query) {
+    ... on Document {
+      ...DocumentFields
+    }
+
+    ... on Message {
+      ...MessageFields
+    }
+  }
+}

@@ -1,40 +1,32 @@
-import { gql, useQuery } from '@apollo/client';
-import { useEffect, useState } from 'react';
-import { Integration } from './common';
+import { useContext, useEffect, useState } from 'react';
 import IntegrationCard from './base';
 import { Button, Icon } from '@chakra-ui/react';
 import { FaLink, FaUnlink } from 'react-icons/fa';
 import { makeOAuthURL } from 'shared/libs/integrations/slack';
-import { Credentials, Provider } from 'shared/libs/gql_types';
+import { AppUserContext } from 'contexts/AppUser';
+import { Provider, useUserApiCredentialQuery } from 'generated/graphql_types';
+import { Credentials, Integration } from 'shared/libs/types';
 
-const onClick = (provider: Provider) => {
+const onClick = (provider: Provider, userId: string) => {
   switch (provider) {
-    case Provider.SLACK:
-      window.open(
-        makeOAuthURL(),
-        '_blank',
-        'location=yes,height=570,width=520,scrollbars=yes,status=yes'
-      );
+    case Provider.Slack:
+      window.open(makeOAuthURL(userId), '_self');
       break;
   }
 };
 
-const UserIntegrationCard = ({ integration }: { integration: Integration }) => {
-  const { provider, name } = integration;
-  const { data, loading } = useQuery(
-    gql`
-      query userApiCredential($provider: Provider!) {
-        userApiCredential(provider: $provider) {
-          userId
-          provider
-          credentialsJSON
-        }
-      }
-    `,
-    {
-      variables: { provider },
-    }
-  );
+const UserIntegrationCard = ({
+  provider,
+  integration,
+}: {
+  provider: Provider;
+  integration: Integration;
+}) => {
+  const { name } = integration;
+  const user = useContext(AppUserContext);
+  const { data, loading } = useUserApiCredentialQuery({
+    variables: { provider },
+  });
   const [credentials, setCredentials] = useState<Credentials | null>(null);
   const connected = credentials !== null;
   useEffect(() => {
@@ -52,9 +44,10 @@ const UserIntegrationCard = ({ integration }: { integration: Integration }) => {
         leftIcon={<Icon as={connected ? FaUnlink : FaLink} />}
         colorScheme="brand"
         onClick={() => {
-          onClick(integration.provider);
+          if (!user) return;
+          onClick(provider, user.id);
         }}
-        isLoading={loading}
+        isLoading={loading || !user}
         variant={connected ? 'ghost' : undefined}
       >
         {buttonLabel}

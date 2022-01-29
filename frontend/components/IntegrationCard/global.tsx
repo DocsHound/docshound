@@ -1,7 +1,5 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
 import useToast from 'hooks/useToast';
 import { useEffect, useState } from 'react';
-import { Credentials, Integration } from './common';
 import IntegrationCard from './base';
 import {
   Button,
@@ -21,31 +19,26 @@ import {
 } from '@chakra-ui/react';
 import CredentialsInput from './input';
 import { BsFillCheckCircleFill, BsFillPenFill } from 'react-icons/bs';
-import { queryGlobalApi } from 'shared/libs/gql_queries';
+import {
+  Provider,
+  useGlobalApiCredentialQuery,
+  useUpsertGlobalApiCredentialMutation,
+} from 'generated/graphql_types';
+import { Credentials, Integration } from 'shared/libs/types';
 
 const GlobalIntegrationCard = ({
+  provider,
   integration,
 }: {
+  provider: Provider;
   integration: Integration;
 }) => {
-  const { provider, name } = integration;
+  const { name } = integration;
   const toast = useToast();
-  const { data, loading } = useQuery(queryGlobalApi, {
+  const { data, loading } = useGlobalApiCredentialQuery({
     variables: { provider },
   });
-  const [upsertCredentials] = useMutation(gql`
-    mutation upsertGlobalApiCredential(
-      $provider: Provider!
-      $credentialsJSON: JSONObject!
-    ) {
-      upsertGlobalApiCredential(
-        provider: $provider
-        credentialsJSON: $credentialsJSON
-      ) {
-        id
-      }
-    }
-  `);
+  const [upsertCredentials] = useUpsertGlobalApiCredentialMutation();
   const [exists, setExists] = useState<boolean | null>(null);
   const [credentials, setCredentials] = useState<Credentials | null>(null);
 
@@ -93,7 +86,7 @@ const GlobalIntegrationCard = ({
               })
                 .then((res) => {
                   console.debug(
-                    `upserted GlobalApiCredential ${res.data.upsertGlobalApiCredential.id}`
+                    `upserted GlobalApiCredential ${res.data?.upsertGlobalApiCredential.id}`
                   );
                   toast({
                     title: `Your ${name} API credentials were updated.`,

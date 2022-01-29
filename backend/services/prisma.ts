@@ -1,9 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { AppRole, PrismaClient } from '@prisma/client';
 import { AuthChecker, buildSchema } from 'type-graphql';
 import { GraphQLContext } from '../types';
 import { captureErrorMsg } from './errors';
 import { MyGlobalApiCredentialResolver } from '../resolvers/global_api_credential';
 import { MyUserApiCredentialResolver } from '../resolvers/user_api_credential';
+import { SearchResolver } from '../resolvers/search';
 
 export const makeClient = () => {
   const prisma = new PrismaClient({
@@ -36,7 +37,11 @@ export const makeClient = () => {
 
 export const makeSchema = async () => {
   const schema = await buildSchema({
-    resolvers: [MyGlobalApiCredentialResolver, MyUserApiCredentialResolver],
+    resolvers: [
+      MyGlobalApiCredentialResolver,
+      MyUserApiCredentialResolver,
+      SearchResolver,
+    ],
     validate: false,
     // Return date fields as unix seconds (instead of ISO string).
     dateScalarMode: 'timestamp',
@@ -50,7 +55,9 @@ const authChecker: AuthChecker<GraphQLContext> = ({ context, info }, roles) => {
   const opName = `${info.path.typename} ${info.path.key}`;
 
   if (
+    // Admins match all roles.
     !context.serverAdmin &&
+    context.user?.role !== AppRole.ADMIN &&
     (!context.user || !roles.includes(context.user.role))
   ) {
     captureErrorMsg(

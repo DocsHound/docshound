@@ -1,0 +1,19 @@
+fragment DocumentFields on Document {
+  provider
+  docType
+  title
+  desc {
+    text
+    matches {
+      s
+      e
+    }
+  }
+  url
+  authors {
+    resourceID
+    resourceName
+  }
+  lastUpdated
+  created
+}

@@ -1,4 +1,7 @@
 import Head from 'next/head';
+import countBy from 'lodash/countBy';
+import groupBy from 'lodash/groupBy';
+import pluralize from 'pluralize';
 import {
   Text,
   Box,
@@ -13,9 +16,10 @@ import {
   Image,
   useColorModeValue,
   Button,
+  Heading,
 } from '@chakra-ui/react';
 import NextLink from 'next/link';
-import { ReactElement, useEffect, useRef, useState } from 'react';
+import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 import { NextPageWithLayout } from 'pages/types';
 import Dashboard from 'layouts/Dashboard';
 import { user, workspace } from 'mocks/data';
@@ -33,14 +37,27 @@ import {
 import { Search2Icon } from '@chakra-ui/icons';
 import { NextApiRequest } from 'next';
 import { authServerSideProps } from 'shared/libs/supabase';
+import { useRouter } from 'next/router';
+import {
+  DocType,
+  Maybe,
+  Provider,
+  ProviderResource,
+  SearchResult,
+  SearchResultText,
+  useSearchLazyQuery,
+} from 'generated/graphql_types';
+import { getIntegration } from 'constants/integrations';
 
-const results: Array<ResultItemProps> = [
+const results: Array<SearchResult> = [
   {
-    source: 'google-drive-docs',
+    __typename: 'Document',
+    provider: Provider.Confluence,
+    docType: DocType.WebPage,
     title: 'RFC: Centering a div',
     desc: {
       text: 'This is an rfc for centering divs ... Centering a div is rather difficult because of the complexities of CSS ... Every div matters',
-      bold: [
+      matches: [
         { s: 19, e: 33 },
         { s: 38, e: 53 },
         { s: 119, e: 122 },
@@ -48,53 +65,27 @@ const results: Array<ResultItemProps> = [
     },
     url: 'https://docs.google.com/',
     lastUpdated: new Date().getTime() - 1000 * 60 * 32,
-    author: user,
+    created: new Date().getTime() - 1000 * 60 * 32,
+    authors: [{ resourceID: '123', resourceName: 'Richard Wu' }],
   },
   {
-    source: 'confluence',
+    __typename: 'Document',
+    provider: Provider.Confluence,
+    docType: DocType.WebPage,
     title: 'Tutorial on Centering Divs',
     desc: {
       text: 'Centering divs are quite difficult: that is why we wrote this 20-minute tutorial on how to center a div.',
-      bold: [
+      matches: [
         { s: 0, e: 14 },
         { s: 91, e: 103 },
       ],
     },
     url: 'https://confluence.atlassian.com/',
     lastUpdated: new Date().getTime() - 1000 * 60 * 60 * 24 * 9,
-    author: user,
+    created: new Date().getTime() - 1000 * 60 * 32,
+    authors: [{ resourceID: '123', resourceName: 'Richard Wu' }],
   },
 ];
-
-type ResultSource = 'google-drive-docs' | 'confluence';
-
-const SOURCE_SVG = {
-  'google-drive-docs': '/integration_logos/google-docs.svg',
-  confluence: '/integration_logos/confluence.svg',
-};
-
-const SOURCE_NAME = {
-  'google-drive-docs': 'Google Docs',
-  confluence: 'Confluence',
-};
-
-interface ResultDesc {
-  text: string;
-  bold: Array<{ s: number; e: number }>;
-}
-
-interface ResultItemProps {
-  source: ResultSource;
-  title: string;
-  desc: ResultDesc;
-  url: string;
-  lastUpdated: number;
-  author: {
-    firstName: string;
-    lastName: string;
-    avatar: string;
-  };
-}
 
 const DualLogo = ({
   outerSrc,
@@ -129,34 +120,43 @@ const SingleLogo = ({ src, alt }: { src: string; alt: string }) => {
   );
 };
 
-const ResultLogo = ({ source }: { source: ResultSource }) => {
-  return {
-    'google-drive-docs': (
-      <DualLogo
-        outerSrc={SOURCE_SVG['google-drive-docs']}
-        innerSrc="/integration_logos/google-drive.svg"
-        alt={SOURCE_SVG['google-drive-docs']}
-      />
-    ),
-    confluence: (
-      <SingleLogo
-        src={SOURCE_SVG['confluence']}
-        alt={SOURCE_SVG['confluence']}
-      />
-    ),
-  }[source];
+const ResultLogo = ({
+  provider,
+  docType,
+}: {
+  provider: Provider;
+  docType: Maybe<DocType> | undefined;
+}) => {
+  const docTypeSrc = getIntegration(provider, docType)['logoURI'];
+  const providerSrc = getIntegration(provider)['logoURI'];
+  const alt = getIntegration(provider, docType)['name'];
+  if (docTypeSrc !== providerSrc) {
+    return <DualLogo outerSrc={docTypeSrc} innerSrc={providerSrc} alt={alt} />;
+  }
+  return <SingleLogo src={providerSrc} alt={alt} />;
 };
 
-const FilterLogo = ({ source }: { source: ResultSource }) => {
+const FilterLogo = ({
+  provider,
+  docType,
+}: {
+  provider: Provider;
+  docType: Maybe<DocType> | undefined;
+}) => {
   return (
-    <Image src={SOURCE_SVG[source]} alt={SOURCE_NAME[source]} w="4" h="4" />
+    <Image
+      src={getIntegration(provider, docType)['logoURI']}
+      alt={getIntegration(provider, docType)['name']}
+      w="4"
+      h="4"
+    />
   );
 };
 
-const ResultDesc = ({ desc }: { desc: ResultDesc }) => {
+const ResultText = ({ desc }: { desc: SearchResultText }) => {
   let prev = 0;
   let textElems: Array<ReactElement> = [];
-  for (const { s, e } of desc.bold) {
+  for (const { s, e } of desc.matches) {
     if (s !== prev) {
       textElems.push(<span key={prev}>{desc.text.slice(prev, s)}</span>);
     }
@@ -174,54 +174,108 @@ const ResultDesc = ({ desc }: { desc: ResultDesc }) => {
   return <Text>{textElems}</Text>;
 };
 
-const ResultItem = ({
-  source,
-  title,
-  desc,
-  url,
-  lastUpdated,
-  author,
-}: ResultItemProps) => {
+const authorsText = (authors: Array<ProviderResource>) => {
+  const names = authors
+    .filter((a) => a.resourceName !== null)
+    .map((a) => a.resourceName);
+  if (!names) return null;
+  if (names.length >= 3) {
+    return `${names[0]} and ${names.length - 1} others`;
+  }
+  return names.join(', ');
+};
+
+const ResultItem = ({ result }: { result: SearchResult }) => {
   const linkColor = useColorModeValue('brand.500', 'brand.200');
 
-  return (
-    <HStack align="start" width="100%">
-      <ResultLogo source={source} />
-      <VStack align="start" flex="1">
-        <NextLink href={url} passHref>
-          <Link
-            fontSize="lg"
-            color={linkColor}
-            fontWeight="semibold"
-            isExternal
-          >
-            {title}
-          </Link>
-        </NextLink>
-        <HStack fontSize="xs">
-          <Text variant="secondary">
-            Updated {humanReadableDuration(new Date(lastUpdated), new Date())}{' '}
-            ago
-          </Text>
-          <Avatar src={author.avatar} size="xs"></Avatar>
-          <Text variant="secondary">
-            {author.firstName} {author.lastName}
-          </Text>
+  switch (result.__typename) {
+    case 'Document':
+      return (
+        <HStack align="start" width="100%">
+          <ResultLogo provider={result.provider} docType={result.docType} />
+          <VStack align="start" flex="1">
+            {!!result.title &&
+              (!!result.url ? (
+                <NextLink href={result.url} passHref>
+                  <Link
+                    fontSize="lg"
+                    color={linkColor}
+                    fontWeight="semibold"
+                    isExternal
+                  >
+                    {result.title}
+                  </Link>
+                </NextLink>
+              ) : (
+                <Heading as="h3" fontWeight="semibold">
+                  {result.title}
+                </Heading>
+              ))}
+            <HStack fontSize="xs">
+              {!!result.lastUpdated ? (
+                <Text variant="secondary">
+                  Updated{' '}
+                  {humanReadableDuration(
+                    new Date(result.lastUpdated),
+                    new Date()
+                  )}{' '}
+                  ago
+                </Text>
+              ) : !!result.created ? (
+                <Text variant="secondary">
+                  Updated{' '}
+                  {humanReadableDuration(new Date(result.created), new Date())}{' '}
+                  ago
+                </Text>
+              ) : null}
+              {/* TODO: lookup avatar */}
+              {/* <Avatar src={author.avatar} size="xs"></Avatar> */}
+              {!!result.authors && (
+                <Text variant="secondary">{authorsText(result.authors)}</Text>
+              )}
+            </HStack>
+            {!!result.desc && <ResultText desc={result.desc} />}
+          </VStack>
         </HStack>
-        <ResultDesc desc={desc} />
-      </VStack>
-    </HStack>
-  );
+      );
+
+    case 'Message':
+      // TODO
+      return null;
+    default:
+      return null;
+  }
 };
 
 const Home: NextPageWithLayout = () => {
-  const [query, setQuery] = useState('');
-
+  const router = useRouter();
+  const [query, setQuery] = useState((router.query.q as string) ?? '');
   const searchRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     searchRef.current?.focus();
   }, []);
+  const [searchResults, setSearchResults] =
+    useState<Array<SearchResult> | null>(null);
+  const [search, { data }] = useSearchLazyQuery();
+
+  useEffect(() => {
+    if (!router.query.q) return;
+
+    search({ variables: { query: router.query.q as string } }).then((res) => {
+      if (!!res.data?.search) setSearchResults([...res.data.search]);
+    });
+  }, [search, router.query.q]);
+
+  const performSearch = () => {
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, q: query },
+    });
+  };
+
+  useEffect(() => {
+    console.log('search res', searchResults);
+  }, [searchResults]);
 
   return (
     <Box>
@@ -237,28 +291,23 @@ const Home: NextPageWithLayout = () => {
           onChange={(e) => {
             setQuery(e.target.value);
           }}
+          onKeyDown={async (e) => {
+            if (e.key === 'Enter') {
+              await performSearch();
+            }
+          }}
           placeholder="Search across your apps, documents, and more."
           size="sm"
         ></Input>
         <Flex direction="row" align="flex-start" justify="space-between" my="5">
           <VStack maxW="800" align="start" spacing="5">
-            {results.map(
-              ({ source, title, desc, url, lastUpdated, author }) => (
-                <ResultItem
-                  key={url}
-                  source={source}
-                  title={title}
-                  desc={desc}
-                  url={url}
-                  lastUpdated={lastUpdated}
-                  author={author}
-                />
-              )
-            )}
+            {results.map((result, idx) => (
+              <ResultItem key={idx} result={result} />
+            ))}
           </VStack>
           <VStack align="flex-start">
             <Text variant="secondary" fontSize="xs">
-              Found 24k results
+              Found {pluralize('result', results.length, true)}
             </Text>
             <Button
               leftIcon={<Search2Icon />}
@@ -270,19 +319,37 @@ const Home: NextPageWithLayout = () => {
             >
               All
             </Button>
-            {Array.from(new Set(results.map((r) => r.source))).map((source) => (
-              <Button
-                key={source}
-                leftIcon={<FilterLogo source={source} />}
-                variant="ghost"
-                colorScheme="brand"
-                w="100%"
-                justifyContent="flex-start"
-                px="5"
-              >
-                {SOURCE_NAME[source]}
-              </Button>
-            ))}
+            {Object.entries(groupBy(results, 'provider'))
+              .map(([provider, pResults]) =>
+                Object.entries(countBy(pResults, 'docType')).map(
+                  ([docType, count]) => ({
+                    provider: provider as Provider,
+                    docType: docType as DocType | undefined,
+                    count,
+                  })
+                )
+              )
+              .flat()
+              .map(({ provider, docType, count }) => (
+                <Button
+                  key={`${provider},${docType}`}
+                  leftIcon={
+                    <FilterLogo provider={provider} docType={docType} />
+                  }
+                  variant="ghost"
+                  colorScheme="brand"
+                  w="100%"
+                  justifyContent="flex-start"
+                  px="5"
+                >
+                  <HStack spacing="4" justify="space-between">
+                    <Text style={{ textOverflow: 'ellipsis' }}>
+                      {getIntegration(provider, docType)['name']}
+                    </Text>
+                    <Text style={{ fontVariant: 'tabular-nums' }}>{count}</Text>
+                  </HStack>
+                </Button>
+              ))}
           </VStack>
         </Flex>
       </Container>

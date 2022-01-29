@@ -10,7 +10,6 @@ import express, { RequestHandler } from 'express';
 import { startServer } from './services/apollo';
 import { makeClient, makeSchema } from './services/prisma';
 import { makeHTTPServer, useTLS } from './services/httpserver';
-import { receiver, app as slackApp } from './integrations/slack';
 import { anonSupabase, sRoleSupabase } from './services/supabase';
 import { randomUUID } from 'crypto';
 import { corsDevConfig } from './utils/cors';
@@ -78,8 +77,6 @@ app.post('/garbage', async (req, res) => {
 });
 
 // Other endspoints.
-
-app.use('/slack', receiver.router);
 
 const main = async () => {
   const httpServer = makeHTTPServer(app);

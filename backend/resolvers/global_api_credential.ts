@@ -1,34 +1,16 @@
-import {
-  Arg,
-  Authorized,
-  Ctx,
-  Field,
-  Mutation,
-  ObjectType,
-  Query,
-  Resolver,
-} from 'type-graphql';
+import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 import * as GraphQLScalars from 'graphql-scalars';
 import { GlobalApiCredential } from '@generated/type-graphql';
 import { AppRole, Prisma } from '@prisma/client';
 import { GraphQLContext } from '../types';
-import { decrypt, encrypt } from '../services/crypto';
-import { Provider, providerFields } from '../integrations/constants';
+import { encrypt } from '../services/crypto';
+import { providerFields } from '../integrations/constants';
 import { arraysEqual } from '../utils/objects';
+import { getGlobalAPICredential } from '../shared/libs/credential';
+import { DecryptedGlobalApiCredential } from '../shared/libs/gql_types/credential';
+import { Provider } from '../shared/libs/gql_types/integration';
 
-@ObjectType()
-class DecryptedGlobalApiCredential {
-  @Field((_type) => Provider)
-  provider!: Provider;
-
-  @Field((_type) => Boolean)
-  exists!: boolean;
-
-  @Field((_type) => GraphQLScalars.JSONObjectResolver)
-  credentialsJSON!: Prisma.JsonObject;
-}
-
-@Resolver((_of) => GlobalApiCredential)
+@Resolver()
 export class MyGlobalApiCredentialResolver {
   @Authorized(AppRole.ADMIN)
   @Mutation((_returns) => GlobalApiCredential)
@@ -73,12 +55,8 @@ export class MyGlobalApiCredentialResolver {
     @Ctx() ctx: GraphQLContext,
     @Arg('provider', (_type) => Provider) provider: Provider
   ): Promise<DecryptedGlobalApiCredential | null> {
-    const cred = await ctx.prisma.globalApiCredential.findUnique({
-      where: {
-        provider,
-      },
-    });
-    if (!cred)
+    const exist = await getGlobalAPICredential(ctx.prisma, provider);
+    if (!exist)
       return {
         provider,
         exists: false,
@@ -86,18 +64,6 @@ export class MyGlobalApiCredentialResolver {
           providerFields(provider).map((key) => [key, null])
         ),
       };
-
-    const secretKey = process.env.API_CRED_AES_KEY;
-    if (!secretKey) {
-      throw new Error('missing API_CRED_AES_KEY envvar');
-    }
-
-    const exist = JSON.parse(
-      decrypt(
-        { iv: cred.encryptionIV, content: cred.encryptedCredentials },
-        secretKey
-      )
-    );
 
     return {
       provider,

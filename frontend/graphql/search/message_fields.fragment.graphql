@@ -1,0 +1,20 @@
+fragment MessageFields on Message {
+  provider
+  group {
+    resourceID
+    resourceName
+  }
+  message {
+    text
+    matches {
+      s
+      e
+    }
+  }
+  url
+  author {
+    resourceID
+    resourceName
+  }
+  created
+}

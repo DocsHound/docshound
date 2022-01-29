@@ -8,7 +8,6 @@ import {
   WrapItem,
   VStack,
 } from '@chakra-ui/react';
-import { integrations } from 'components/IntegrationCard/common';
 import { GlobalIntegrationCard } from 'components/IntegrationCard';
 import Dashboard from 'layouts/Dashboard';
 import { workspace } from 'mocks/data';
@@ -17,15 +16,17 @@ import Head from 'next/head';
 import { NextPageWithLayout } from 'pages/types';
 import { BsFillGearFill } from 'react-icons/bs';
 import { authServerSideProps } from 'shared/libs/supabase';
+import { Provider } from 'generated/graphql_types';
+import { integrations } from 'constants/integrations';
 
 const Settings: NextPageWithLayout = () => {
   return (
     <Box>
       <Head>
-        <title>{workspace.name} | Integrations | DocsHound</title>
+        <title>{workspace.name} | Workspace Settings | DocsHound</title>
         <meta
           name="description"
-          content="Manage your DocsHound integrations here."
+          content="Manage your DocsHound workspace's settings here."
         />
         <link rel="icon" href={workspace.favicon} />
       </Head>
@@ -40,9 +41,10 @@ const Settings: NextPageWithLayout = () => {
           </Text>
         </VStack>
         <Wrap spacing="4" justify="start">
-          {integrations.map((integration) => (
+          {Object.entries(integrations).map(([provider, integration]) => (
             <WrapItem key={integration.name}>
               <GlobalIntegrationCard
+                provider={provider as Provider}
                 integration={integration}
               ></GlobalIntegrationCard>
             </WrapItem>
