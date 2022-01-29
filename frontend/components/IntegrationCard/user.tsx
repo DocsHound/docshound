@@ -1,19 +1,13 @@
 import { useContext, useEffect, useState } from 'react';
 import IntegrationCard from './base';
-import { Button, Icon } from '@chakra-ui/react';
+import { Button, HStack, Icon, Text } from '@chakra-ui/react';
 import { FaLink, FaUnlink } from 'react-icons/fa';
-import { makeOAuthURL } from 'shared/libs/integrations/slack';
+import { useOAuthURL } from 'shared/libs/integrations';
 import { AppUserContext } from 'contexts/AppUser';
 import { Provider, useUserApiCredentialQuery } from 'generated/graphql_types';
 import { Credentials, Integration } from 'shared/libs/types';
-
-const onClick = (provider: Provider, userId: string) => {
-  switch (provider) {
-    case Provider.Slack:
-      window.open(makeOAuthURL(userId), '_self');
-      break;
-  }
-};
+import useToast from 'hooks/useToast';
+import { BsFillQuestionCircleFill } from 'react-icons/bs';
 
 const UserIntegrationCard = ({
   provider,
@@ -23,6 +17,7 @@ const UserIntegrationCard = ({
   integration: Integration;
 }) => {
   const { name } = integration;
+  const toast = useToast();
   const user = useContext(AppUserContext);
   const { data, loading } = useUserApiCredentialQuery({
     variables: { provider },
@@ -36,22 +31,44 @@ const UserIntegrationCard = ({
   }, [provider, data]);
   const buttonLabel = connected ? 'Disconnect' : 'Connect';
 
+  const { url, loading: urlLoading } = useOAuthURL(provider, user?.id);
+
   return (
     <IntegrationCard integration={integration}>
-      <Button
-        m="4"
-        aria-label={` ${name}`}
-        leftIcon={<Icon as={connected ? FaUnlink : FaLink} />}
-        colorScheme="brand"
-        onClick={() => {
-          if (!user) return;
-          onClick(provider, user.id);
-        }}
-        isLoading={loading || !user}
-        variant={connected ? 'ghost' : undefined}
-      >
-        {buttonLabel}
-      </Button>
+      {urlLoading || !!url ? (
+        <Button
+          m="4"
+          aria-label={` ${name}`}
+          leftIcon={<Icon as={connected ? FaUnlink : FaLink} />}
+          colorScheme="brand"
+          onClick={() => {
+            if (!user) return;
+            if (!url) return;
+            window.open(url, '_self');
+          }}
+          isLoading={loading || !user || urlLoading}
+          variant={connected ? 'ghost' : undefined}
+        >
+          {buttonLabel}
+        </Button>
+      ) : (
+        <Button
+          m="4"
+          onClick={() => {
+            toast({
+              title: `${name} not enabled in this workspace.`,
+              description:
+                'A workspace admin may enable this integration in Workspace Settings.',
+              status: 'error',
+            });
+          }}
+          leftIcon={<Icon as={BsFillQuestionCircleFill} />}
+          variant="ghost"
+          colorScheme="red"
+        >
+          Not Enabled
+        </Button>
+      )}
     </IntegrationCard>
   );
 };

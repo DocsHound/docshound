@@ -1,4 +1,4 @@
-# See https://www.the-guild.dev/blog/graphql-codegen-best-practices.
+# See https://www.the-guild.dev/blog/graphql-codegen-best-practices
 watch: true
 schema:
   - "https://localhost:5500/graphql":
@@ -16,3 +16,4 @@ generates:
       - typescript
       - typescript-operations
       - typescript-react-apollo
+      - named-operations-object

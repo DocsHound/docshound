@@ -15,6 +15,7 @@ const slackClientIDKey = 'SLACK_CLIENT_ID';
 const slackClientSecretKey = 'SLACK_CLIENT_SECRET';
 const slackBotTokenKey = 'SLACK_BOT_TOKEN';
 const slackSigningSecretKey = 'SLACK_SIGNING_SECRET';
+export const slackPublicKeys = [slackClientIDKey];
 export const slackKeys = [
   slackClientIDKey,
   slackClientSecretKey,

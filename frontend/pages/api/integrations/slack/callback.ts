@@ -1,16 +1,33 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { clientID } from 'shared/libs/integrations/slack';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
 import { client } from 'shared/libs/apollo';
-import { queryGlobalApi } from 'shared/libs/gql_queries';
-import { ApolloQueryResult, gql } from '@apollo/client';
-import { GlobalApiCredential, Provider } from 'shared/libs/gql_types';
+import {
+  GlobalApiCredentialDocument,
+  Provider,
+  Query,
+  UpsertUserApiCredentialDocument,
+} from 'generated/graphql_types';
+import {
+  slackClientIDKey,
+  slackClientSecretKey,
+} from 'shared/libs/integrations/slack';
+
+const provider = Provider.Slack;
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if ('error' in req.query) {
+    res.redirect(
+      `/integrations?status=error&message=${encodeURIComponent(
+        `Could not complete Slack OAuth: ${req.query.error}`
+      )}`
+    );
+    return;
+  }
+
   // Retrieve access token for user.
   const formData = new FormData();
   formData.append('code', req.query['code'] as string);
@@ -18,14 +35,15 @@ export default async function handler(
     'redirect_uri',
     'https://localhost:3001/api/integrations/slack/callback'
   );
-  formData.append('client_id', clientID);
 
-  let result: ApolloQueryResult<{ globalApiCredential: GlobalApiCredential }>;
+  let result: Query['globalApiCredential'];
   try {
-    result = await client.query({
-      query: queryGlobalApi,
-      variables: { provider: Provider.SLACK },
-    });
+    result = (
+      await client.query<Query>({
+        query: GlobalApiCredentialDocument,
+        variables: { provider },
+      })
+    ).data.globalApiCredential;
   } catch (err) {
     res.redirect(
       `/integrations?status=error&message=${encodeURIComponent(
@@ -35,8 +53,7 @@ export default async function handler(
     return;
   }
 
-  const secret =
-    result.data.globalApiCredential.credentialsJSON['SLACK_CLIENT_SECRET'];
+  const secret = result?.credentialsJSON[slackClientSecretKey];
   if (!secret) {
     res.redirect(
       `/integrations?status=error&message=${encodeURIComponent(
@@ -45,7 +62,17 @@ export default async function handler(
     );
     return;
   }
+  const clientID = result?.credentialsJSON[slackClientIDKey];
+  if (!clientID) {
+    res.redirect(
+      `/integrations?status=error&message=${encodeURIComponent(
+        'Missing SLACK_CLIENT_ID. A workspace admin should enable this in the workspace settings.'
+      )}`
+    );
+    return;
+  }
 
+  formData.append('client_id', clientID);
   formData.append('client_secret', secret);
   console.log(req.query['code'], clientID, secret);
   // See https://api.slack.com/methods/oauth.v2.access for examples of responses.
@@ -75,24 +102,10 @@ export default async function handler(
 
   try {
     await client.mutate({
-      mutation: gql`
-        mutation upsertUserApiCredential(
-          $userId: String!
-          $provider: Provider!
-          $credentialsJSON: JSONObject!
-        ) {
-          upsertUserApiCredential(
-            userId: $userId
-            provider: $provider
-            credentialsJSON: $credentialsJSON
-          ) {
-            id
-          }
-        }
-      `,
+      mutation: UpsertUserApiCredentialDocument,
       variables: {
         userId: req.query['state'] as string,
-        provider: Provider.SLACK,
+        provider,
         credentialsJSON: respJSON,
       },
     });
@@ -104,8 +117,6 @@ export default async function handler(
     );
     return;
   }
-
-  //   const supabase = makeSRoleSupabase();
 
   res.redirect(
     `/integrations?status=success&message=${encodeURIComponent(

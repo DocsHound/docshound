@@ -4,7 +4,10 @@ import { GlobalApiCredential } from '@generated/type-graphql';
 import { AppRole, Prisma } from '@prisma/client';
 import { GraphQLContext } from '../types';
 import { encrypt } from '../services/crypto';
-import { providerFields } from '../integrations/constants';
+import {
+  providerFields,
+  publicProviderFields,
+} from '../integrations/constants';
 import { arraysEqual } from '../utils/objects';
 import { getGlobalAPICredential } from '../shared/libs/credential';
 import { DecryptedGlobalApiCredential } from '../shared/libs/gql_types/credential';
@@ -70,6 +73,35 @@ export class MyGlobalApiCredentialResolver {
       exists: true,
       credentialsJSON: Object.fromEntries(
         providerFields(provider).map((key) => [key, exist[key] ?? null])
+      ),
+    };
+  }
+
+  @Authorized(AppRole.USER)
+  @Query((_returns) => DecryptedGlobalApiCredential, {
+    nullable: true,
+    description:
+      'This returns Global API credentials that are allowed to be viewed by the public (e.g., public client ID).',
+  })
+  async publicGlobalApiCredential(
+    @Ctx() ctx: GraphQLContext,
+    @Arg('provider', (_type) => Provider) provider: Provider
+  ): Promise<DecryptedGlobalApiCredential | null> {
+    const exist = await getGlobalAPICredential(ctx.prisma, provider);
+    if (!exist)
+      return {
+        provider,
+        exists: false,
+        credentialsJSON: Object.fromEntries(
+          publicProviderFields(provider).map((key) => [key, null])
+        ),
+      };
+
+    return {
+      provider,
+      exists: true,
+      credentialsJSON: Object.fromEntries(
+        publicProviderFields(provider).map((key) => [key, exist[key] ?? null])
       ),
     };
   }
