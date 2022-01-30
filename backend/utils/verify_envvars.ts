@@ -6,13 +6,7 @@ const REQUIRED_ENVVARS: string[] = [
   'SERVER_ADMIN_SECRET',
 ];
 
-const OPTIONAL_ENVVARS: string[] = [
-  'SSL_PATH',
-
-  // SLACK
-  'SLACK_BOT_TOKEN',
-  'SLACK_SIGNING_SECRET',
-];
+const OPTIONAL_ENVVARS: string[] = ['SSL_PATH'];
 
 export const verifyEnvVars = () => {
   const badEnvVars = [];
