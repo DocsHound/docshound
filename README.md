@@ -11,6 +11,8 @@ DocsHound is an open-source workplace search and work hub platform. It connects 
 - `http://localhost:3000`: Supabase dashboard
 - `http://localhost:8000`: Kong (Supabase) backend
 
+In Chrome, you'll need to enable unsafe https localhost by navigating to `chrome://flags/#allow-insecure-localhost`.
+
 ### Start up
 
 #### Supabase
