@@ -74,7 +74,6 @@ export default async function handler(
 
   formData.append('client_id', clientID);
   formData.append('client_secret', secret);
-  console.log(req.query['code'], clientID, secret);
   // See https://api.slack.com/methods/oauth.v2.access for examples of responses.
   const resp = await fetch('https://slack.com/api/oauth.v2.access', {
     method: 'POST',

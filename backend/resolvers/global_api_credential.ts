@@ -9,6 +9,7 @@ import {
   publicProviderFields,
 } from '../integrations/constants';
 import { arraysEqual } from '../utils/objects';
+import * as Slack from '../integrations/slack';
 import { getGlobalAPICredential } from '../shared/libs/credential';
 import { DecryptedGlobalApiCredential } from '../shared/libs/gql_types/credential';
 import { Provider } from '../shared/libs/gql_types/integration';
@@ -38,7 +39,7 @@ export class MyGlobalApiCredentialResolver {
 
     const { iv, content } = encrypt(JSON.stringify(credentialsJSON), secretKey);
 
-    return await ctx.prisma.globalApiCredential.upsert({
+    const ret = await ctx.prisma.globalApiCredential.upsert({
       where: { provider },
       update: {
         encryptionIV: iv,
@@ -50,6 +51,15 @@ export class MyGlobalApiCredentialResolver {
         encryptedCredentials: content,
       },
     });
+
+    // Recreate client with new credentials.
+    switch (provider) {
+      case Provider.Slack:
+        Slack.getOrCreateApp(ctx.prisma, true);
+        break;
+    }
+
+    return ret;
   }
 
   @Authorized(AppRole.ADMIN)

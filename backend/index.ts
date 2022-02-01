@@ -10,9 +10,9 @@ import express, { RequestHandler } from 'express';
 import { startServer } from './services/apollo';
 import { makeClient, makeSchema } from './services/prisma';
 import { makeHTTPServer, useTLS } from './services/httpserver';
-import { anonSupabase, sRoleSupabase } from './services/supabase';
-import { randomUUID } from 'crypto';
 import { corsDevConfig } from './utils/cors';
+import { client } from './services/elasticsearch';
+import { getOrCreateApp } from './integrations/slack';
 
 let serverListening = false;
 const app = express();
@@ -20,6 +20,7 @@ app.use(cookieParser());
 if (process.env.NODE_ENV === 'development') app.use(cors(corsDevConfig));
 
 const prisma = makeClient();
+getOrCreateApp(prisma);
 
 // Status checks.
 
@@ -33,50 +34,13 @@ app.get('/healthz', (_req, res) => {
   return res.status(serverListening ? 200 : 400).send(serverListening);
 });
 
-app.get('/garbage_lol', async (req, res) => {
-  const token = req.get('X-Supabase-Auth') ?? '';
-  console.log(token);
-  anonSupabase.auth.setAuth(token);
-  const result = await anonSupabase.from('UserRole').select();
-  console.log(result);
-  res.status(200).json(result);
+app.get('/es', (_req, res) => {
+  client
+    .info()
+    .then((response) => console.log(response))
+    .catch((error) => console.error(error));
+  res.send('OK');
 });
-
-app.post('/garbage1', async (_req, res) => {
-  const { data, error } = await anonSupabase
-    .from('GlobalApiCredential')
-    .insert([
-      {
-        provider: 'garbage1',
-        algorithm: 'garbage2',
-        encryptedCredentials: 'garbage3',
-      },
-    ]);
-  console.log(data, error);
-  res.status(200);
-});
-
-app.post('/garbage', async (req, res) => {
-  // const token = req.get('X-Supabase-Auth') ?? '';
-  // const token = '';
-  // console.log(token);
-  // sRoleSupabase.auth.setAuth(token);
-
-  const { data, error } = await sRoleSupabase
-    .from('GlobalApiCredential')
-    .insert([
-      {
-        id: randomUUID(),
-        provider: 'garbage1',
-        algorithm: 'garbage2',
-        encryptedCredentials: 'garbage3',
-      },
-    ]);
-  console.log(data, error);
-  res.status(200);
-});
-
-// Other endspoints.
 
 const main = async () => {
   const httpServer = makeHTTPServer(app);

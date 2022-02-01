@@ -14,6 +14,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^7.16.0",
     "@prisma/client": "3.8.1",
     "@slack/bolt": "^3.8.1",
     "@supabase/supabase-js": "^1.29.3",

@@ -25,7 +25,7 @@ export class SearchResolver {
       userId
     );
     if (slackUserCred) {
-      const slackApp = await Slack.createApp(ctx.prisma);
+      const slackApp = await Slack.getOrCreateApp(ctx.prisma);
       if (slackApp) {
         results.push(
           ...(await Slack.search(

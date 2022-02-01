@@ -7,7 +7,7 @@ import {
   InputRightElement,
 } from '@chakra-ui/react';
 import { Dispatch, SetStateAction, useState } from 'react';
-import { Credentials } from './common';
+import { Credentials } from 'shared/libs/types';
 
 const CredentialsInput = ({
   name,
