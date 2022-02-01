@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import countBy from 'lodash/countBy';
 import groupBy from 'lodash/groupBy';
+import ReactMarkdown from 'react-markdown';
 import pluralize from 'pluralize';
 import {
   Text,
@@ -17,13 +18,19 @@ import {
   useColorModeValue,
   Button,
   Heading,
+  Spinner,
+  Center,
+  UnorderedList,
+  ListItem,
+  Code,
 } from '@chakra-ui/react';
 import NextLink from 'next/link';
-import { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NextPageWithLayout } from 'pages/types';
 import Dashboard from 'layouts/Dashboard';
 import { user, workspace } from 'mocks/data';
 import {
+  conditionalDatetime,
   humanReadableDatetime,
   humanReadableDuration,
   timeOfDay,
@@ -42,50 +49,15 @@ import {
   DocType,
   Maybe,
   Provider,
+  ProviderDocType,
   ProviderResource,
   SearchResult,
   SearchResultText,
+  TextType,
   useSearchLazyQuery,
 } from 'generated/graphql_types';
 import { getIntegration } from 'constants/integrations';
-
-const results: Array<SearchResult> = [
-  {
-    __typename: 'Document',
-    provider: Provider.Confluence,
-    docType: DocType.WebPage,
-    title: 'RFC: Centering a div',
-    desc: {
-      text: 'This is an rfc for centering divs ... Centering a div is rather difficult because of the complexities of CSS ... Every div matters',
-      matches: [
-        { s: 19, e: 33 },
-        { s: 38, e: 53 },
-        { s: 119, e: 122 },
-      ],
-    },
-    url: 'https://docs.google.com/',
-    lastUpdated: new Date().getTime() - 1000 * 60 * 32,
-    created: new Date().getTime() - 1000 * 60 * 32,
-    authors: [{ resourceID: '123', resourceName: 'Richard Wu' }],
-  },
-  {
-    __typename: 'Document',
-    provider: Provider.Confluence,
-    docType: DocType.WebPage,
-    title: 'Tutorial on Centering Divs',
-    desc: {
-      text: 'Centering divs are quite difficult: that is why we wrote this 20-minute tutorial on how to center a div.',
-      matches: [
-        { s: 0, e: 14 },
-        { s: 91, e: 103 },
-      ],
-    },
-    url: 'https://confluence.atlassian.com/',
-    lastUpdated: new Date().getTime() - 1000 * 60 * 60 * 24 * 9,
-    created: new Date().getTime() - 1000 * 60 * 32,
-    authors: [{ resourceID: '123', resourceName: 'Richard Wu' }],
-  },
-];
+import useToast from 'hooks/useToast';
 
 const DualLogo = ({
   outerSrc,
@@ -120,12 +92,12 @@ const SingleLogo = ({ src, alt }: { src: string; alt: string }) => {
   );
 };
 
-const ResultLogo = ({
+const DocLogo = ({
   provider,
   docType,
 }: {
   provider: Provider;
-  docType: Maybe<DocType> | undefined;
+  docType: Maybe<DocType>;
 }) => {
   const docTypeSrc = getIntegration(provider, docType)['logoURI'];
   const providerSrc = getIntegration(provider)['logoURI'];
@@ -136,12 +108,29 @@ const ResultLogo = ({
   return <SingleLogo src={providerSrc} alt={alt} />;
 };
 
+const MessageLogo = ({
+  provider,
+  avatar,
+  username,
+}: {
+  provider: Provider;
+  avatar: Maybe<string>;
+  username: Maybe<string>;
+}) => {
+  const providerSrc = getIntegration(provider)['logoURI'];
+  const alt = username ?? `${getIntegration(provider)['name']} message`;
+  if (avatar) {
+    return <DualLogo outerSrc={avatar} innerSrc={providerSrc} alt={alt} />;
+  }
+  return <SingleLogo src={providerSrc} alt={alt} />;
+};
+
 const FilterLogo = ({
   provider,
   docType,
 }: {
   provider: Provider;
-  docType: Maybe<DocType> | undefined;
+  docType: Maybe<DocType>;
 }) => {
   return (
     <Image
@@ -154,24 +143,23 @@ const FilterLogo = ({
 };
 
 const ResultText = ({ desc }: { desc: SearchResultText }) => {
-  let prev = 0;
-  let textElems: Array<ReactElement> = [];
-  for (const { s, e } of desc.matches) {
-    if (s !== prev) {
-      textElems.push(<span key={prev}>{desc.text.slice(prev, s)}</span>);
-    }
-    textElems.push(
-      <span key={s} style={{ fontWeight: 'bold' }}>
-        {desc.text.slice(s, e)}
-      </span>
-    );
-    prev = e;
+  switch (desc.type) {
+    case TextType.Markdown:
+      return (
+        <ReactMarkdown
+          components={{
+            code: Code,
+          }}
+          className="react-markdown"
+        >
+          {desc.text}
+        </ReactMarkdown>
+      );
+    case TextType.Raw:
+      return <Text>{desc.text}</Text>;
+    default:
+      return null;
   }
-  if (desc.text.length !== prev) {
-    textElems.push(<span key={prev}>{desc.text.slice(prev)}</span>);
-  }
-
-  return <Text>{textElems}</Text>;
 };
 
 const authorsText = (authors: Array<ProviderResource>) => {
@@ -192,7 +180,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
     case 'Document':
       return (
         <HStack align="start" width="100%">
-          <ResultLogo provider={result.provider} docType={result.docType} />
+          <DocLogo provider={result.provider} docType={result.docType} />
           <VStack align="start" flex="1">
             {!!result.title &&
               (!!result.url ? (
@@ -240,8 +228,54 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
       );
 
     case 'Message':
-      // TODO
-      return null;
+      return (
+        <HStack align="start" width="100%">
+          <MessageLogo
+            provider={result.provider}
+            avatar={result.avatar}
+            username={result.author?.resourceName ?? null}
+          />
+          <VStack align="start" flex="1">
+            <HStack>
+              {!!result.url ? (
+                <NextLink href={result.url} passHref>
+                  <Link
+                    fontSize="lg"
+                    color={linkColor}
+                    fontWeight="semibold"
+                    isExternal
+                  >
+                    {result.author?.resourceName ?? 'Slack User'}
+                  </Link>
+                </NextLink>
+              ) : (
+                <Heading as="h3" fontWeight="semibold">
+                  {result.author?.resourceName ?? 'Slack User'}
+                </Heading>
+              )}
+              {!!result.created ? (
+                <Text variant="secondary">
+                  {/* TODO(richardwu): pass through meridian */}
+                  {conditionalDatetime(new Date(result.created), true)}
+                </Text>
+              ) : null}
+              {!!result.group &&
+                (!!result.group.resourceURL ? (
+                  <NextLink href={result.group?.resourceURL} passHref>
+                    <Link isExternal fontWeight="semibold">
+                      #{result.group.resourceName ?? 'Slack Channel'}
+                    </Link>
+                  </NextLink>
+                ) : (
+                  <Text fontWeight="semibold">
+                    #{result.group.resourceName ?? 'Slack Channel'}
+                  </Text>
+                ))}
+            </HStack>
+            {!!result.message && <ResultText desc={result.message} />}
+          </VStack>
+        </HStack>
+      );
     default:
       return null;
   }
@@ -249,33 +283,70 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
 
 const Home: NextPageWithLayout = () => {
   const router = useRouter();
-  const [query, setQuery] = useState((router.query.q as string) ?? '');
+  const toast = useToast();
+
+  const [initialQuery] = useState((router.query.q ?? '') as string);
+  // Most recently executed query.
+  const [query, setQuery] = useState(initialQuery);
+  // Current value in input.
+  const [inputValue, setInputValue] = useState(initialQuery);
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     searchRef.current?.focus();
   }, []);
-  const [searchResults, setSearchResults] =
-    useState<Array<SearchResult> | null>(null);
-  const [search, { data }] = useSearchLazyQuery();
+  const [search, { data, loading, error }] = useSearchLazyQuery();
+  const searchResults: Array<SearchResult> = data?.search
+    ? (data.search as Array<SearchResult>)
+    : [];
+  const [handledError, setHandledError] = useState(false);
+  const [filterProviders, setFilterProviders] = useState<
+    Record<string, ProviderDocType>
+  >({});
 
+  // Perform query on page load.
   useEffect(() => {
-    if (!router.query.q) return;
+    if (initialQuery === '') return;
+    search({ variables: { query: initialQuery, providerDocTypes: null } });
+  }, [search, initialQuery]);
 
-    search({ variables: { query: router.query.q as string } }).then((res) => {
-      if (!!res.data?.search) setSearchResults([...res.data.search]);
-    });
-  }, [search, router.query.q]);
-
-  const performSearch = () => {
+  // Update query params in URL if a query is executed.
+  useEffect(() => {
+    if (query === '') return;
+    if (query === router.query.q) return;
     router.push({
       pathname: router.pathname,
       query: { ...router.query, q: query },
     });
+  }, [router, query]);
+
+  // Perform a search on the input value.
+  const performSearch = (filterProviders: Record<string, ProviderDocType>) => {
+    const temp = inputValue.trim();
+    if (temp === '') return;
+    search({
+      variables: {
+        query: temp,
+        providerDocTypes:
+          Object.keys(filterProviders).length === 0
+            ? null
+            : Object.values(filterProviders),
+      },
+    }).finally(() => {
+      setHandledError(false);
+    });
+    setQuery(temp);
   };
 
   useEffect(() => {
-    console.log('search res', searchResults);
-  }, [searchResults]);
+    if (handledError) return;
+    if (!error) return;
+    setHandledError(true);
+    toast({
+      title: `Could not search for '${query}'.`,
+      description: 'The search service is unavailable. Please try again.',
+      status: 'error',
+    });
+  }, [handledError, error, toast, query]);
 
   return (
     <Box>
@@ -287,71 +358,141 @@ const Home: NextPageWithLayout = () => {
       <Container maxW="1080">
         <Input
           ref={searchRef}
-          value={query}
+          value={inputValue}
           onChange={(e) => {
-            setQuery(e.target.value);
+            setInputValue(e.target.value);
           }}
           onKeyDown={async (e) => {
             if (e.key === 'Enter') {
-              await performSearch();
+              await performSearch(filterProviders);
             }
           }}
-          placeholder="Search across your apps, documents, and more."
+          placeholder="Search for e.g., 'quarterly goals' or 'onboarding'"
           size="sm"
         ></Input>
-        <Flex direction="row" align="flex-start" justify="space-between" my="5">
-          <VStack maxW="800" align="start" spacing="5">
-            {results.map((result, idx) => (
-              <ResultItem key={idx} result={result} />
-            ))}
-          </VStack>
-          <VStack align="flex-start">
-            <Text variant="secondary" fontSize="xs">
-              Found {pluralize('result', results.length, true)}
-            </Text>
-            <Button
-              leftIcon={<Search2Icon />}
-              variant="solid"
-              colorScheme="brand"
-              w="100%"
-              justifyContent="flex-start"
-              px="5"
-            >
-              All
-            </Button>
-            {Object.entries(groupBy(results, 'provider'))
-              .map(([provider, pResults]) =>
-                Object.entries(countBy(pResults, 'docType')).map(
-                  ([docType, count]) => ({
-                    provider: provider as Provider,
-                    docType: docType as DocType | undefined,
-                    count,
-                  })
-                )
-              )
-              .flat()
-              .map(({ provider, docType, count }) => (
+        <Box my="8">
+          {loading ? (
+            <Center>
+              <Spinner size="xl" color="brand.500" />
+            </Center>
+          ) : query === '' ? (
+            <Center>
+              <Heading size="md" as="h3">
+                Search across your connected apps for documents, files, and
+                messages.
+              </Heading>
+            </Center>
+          ) : searchResults.length === 0 ? (
+            <VStack alignItems="flex-start" mx="4">
+              <Text>
+                Your search{' '}
+                <span style={{ fontWeight: 'bold' }}>- {query} -</span> did not
+                match any documents or messages.
+              </Text>
+              <Text>Suggestions:</Text>
+              <Box px="4">
+                <UnorderedList>
+                  <ListItem>
+                    Make sure that all words are spelled correctly.
+                  </ListItem>
+                  <ListItem>Try different keywords.</ListItem>
+                  <ListItem>Try more general keywords.</ListItem>
+                  <ListItem>Try fewer keywords.</ListItem>
+                </UnorderedList>
+              </Box>
+            </VStack>
+          ) : (
+            <Flex direction="row" align="flex-start" justify="space-between">
+              <VStack maxW="800" align="start" spacing="5">
+                {searchResults.map((result, idx) => (
+                  <ResultItem key={idx} result={result} />
+                ))}
+              </VStack>
+              <VStack align="flex-start">
+                <Text variant="secondary" fontSize="xs">
+                  Found {pluralize('result', searchResults.length, true)}
+                </Text>
                 <Button
-                  key={`${provider},${docType}`}
-                  leftIcon={
-                    <FilterLogo provider={provider} docType={docType} />
+                  leftIcon={<Search2Icon />}
+                  variant={
+                    Object.keys(filterProviders).length === 0
+                      ? 'solid'
+                      : 'ghost'
                   }
-                  variant="ghost"
                   colorScheme="brand"
                   w="100%"
                   justifyContent="flex-start"
                   px="5"
+                  onClick={() => {
+                    if (Object.keys(filterProviders).length !== 0) {
+                      performSearch({});
+                    }
+                    setFilterProviders({});
+                  }}
                 >
-                  <HStack spacing="4" justify="space-between">
-                    <Text style={{ textOverflow: 'ellipsis' }}>
-                      {getIntegration(provider, docType)['name']}
-                    </Text>
-                    <Text style={{ fontVariant: 'tabular-nums' }}>{count}</Text>
-                  </HStack>
+                  All
                 </Button>
-              ))}
-          </VStack>
-        </Flex>
+                {Object.entries(groupBy(searchResults, 'provider'))
+                  .map(([provider, pResults]) =>
+                    Object.entries(countBy(pResults, 'docType')).map(
+                      ([docType, count]) => {
+                        return {
+                          provider: provider as Provider,
+                          docType:
+                            docType === 'undefined'
+                              ? null
+                              : (docType as DocType),
+                          count,
+                        };
+                      }
+                    )
+                  )
+                  .flat()
+                  .map(({ provider, docType, count }) => {
+                    const key = `${provider},${docType}`;
+                    const selected = key in filterProviders;
+
+                    return (
+                      <Button
+                        key={key}
+                        leftIcon={
+                          <FilterLogo provider={provider} docType={docType} />
+                        }
+                        variant={selected ? 'solid' : 'ghost'}
+                        colorScheme="brand"
+                        w="100%"
+                        justifyContent="flex-start"
+                        px="5"
+                        onClick={() => {
+                          let newProviders = { ...filterProviders };
+                          if (selected) {
+                            if (key in newProviders) delete newProviders[key];
+                          } else {
+                            newProviders = {
+                              ...newProviders,
+                              [key]: { provider, docType },
+                            };
+                          }
+                          setFilterProviders(newProviders);
+                          // Always need to re-query.
+                          performSearch(newProviders);
+                        }}
+                      >
+                        <HStack spacing="4" justify="space-between">
+                          <Text style={{ textOverflow: 'ellipsis' }}>
+                            {getIntegration(provider, docType)['name']}
+                          </Text>
+                          <Text style={{ fontVariant: 'tabular-nums' }}>
+                            {count}
+                          </Text>
+                        </HStack>
+                      </Button>
+                    );
+                  })}
+              </VStack>
+            </Flex>
+          )}
+        </Box>
       </Container>
     </Box>
   );
@@ -360,6 +501,7 @@ const Home: NextPageWithLayout = () => {
 const HeaderCenter = () => {
   const date = new Date();
   const tod = timeOfDay(date);
+  // TODO(richardwu): meridian toggle
   const readable = humanReadableDatetime(date, true);
   return (
     <Flex align="flex-start">

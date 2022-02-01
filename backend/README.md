@@ -13,10 +13,18 @@ cp .example.env .env
 
 ## ElasticSearch
 
+Create docker network `docker network create elastic`.
+
 Start a single-node cluster:
 
 ```sh
-docker run -p 127.0.0.1:9200:9200 -p 127.0.0.1:9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+docker run --name docshound-es01 --net elastic -p 127.0.0.1:9200:9200 -p 127.0.0.1:9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+```
+
+Optionally, run Kibana:
+
+```sh
+docker run --net elastic -p 127.0.0.1:5601:5601 -e "ELASTICSEARCH_HOSTS=http://docshound-es01:9200" docker.elastic.co/kibana/kibana:7.16.3
 ```
 
 ## Supabase

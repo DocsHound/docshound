@@ -3,7 +3,7 @@ import IntegrationCard from './base';
 import { Button, HStack, Icon, Text } from '@chakra-ui/react';
 import { FaLink, FaUnlink } from 'react-icons/fa';
 import { useOAuthURL } from 'shared/libs/integrations';
-import { AppUserContext } from 'contexts/AppUser';
+import { AppUserContext } from 'contexts';
 import { Provider, useUserApiCredentialQuery } from 'generated/graphql_types';
 import { Credentials, Integration } from 'shared/libs/types';
 import useToast from 'hooks/useToast';

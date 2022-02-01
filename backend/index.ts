@@ -11,8 +11,9 @@ import { startServer } from './services/apollo';
 import { makeClient, makeSchema } from './services/prisma';
 import { makeHTTPServer, useTLS } from './services/httpserver';
 import { corsDevConfig } from './utils/cors';
-import { client } from './services/elasticsearch';
+import { client, initIndices } from './services/elasticsearch';
 import { getOrCreateApp } from './integrations/slack';
+import { captureError } from './services/errors';
 
 let serverListening = false;
 const app = express();
@@ -20,8 +21,6 @@ app.use(cookieParser());
 if (process.env.NODE_ENV === 'development') app.use(cors(corsDevConfig));
 
 const prisma = makeClient();
-getOrCreateApp(prisma);
-
 // Status checks.
 
 const statusCallback: RequestHandler = (_req, res) => {
@@ -47,7 +46,21 @@ const main = async () => {
   const schema = await makeSchema();
   const server = await startServer(app, httpServer, schema, prisma);
 
-  httpServer.listen({ port: process.env.PORT }, () => {
+  // Initialize Slack app.
+  try {
+    await getOrCreateApp(prisma);
+  } catch (err) {
+    captureError(err);
+  }
+
+  // Initialize ES.
+  try {
+    await initIndices();
+  } catch (err) {
+    captureError(err);
+  }
+
+  httpServer.listen({ port: process.env.PORT }, async () => {
     serverListening = true;
     console.log('NODE_ENV:', process.env.NODE_ENV);
     console.log(

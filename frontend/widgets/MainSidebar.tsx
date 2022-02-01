@@ -39,7 +39,7 @@ import { FaLink } from 'react-icons/fa';
 import { isMac } from 'shared/libs/platform';
 import useToast from 'hooks/useToast';
 import { supabase } from 'shared/libs/supabase';
-import { AppUserContext } from 'contexts/AppUser';
+import { AppUserContext } from 'contexts';
 import { AppRole } from 'shared/libs/types';
 
 interface Props {

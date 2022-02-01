@@ -4,10 +4,7 @@ fragment DocumentFields on Document {
   title
   desc {
     text
-    matches {
-      s
-      e
-    }
+    type
   }
   url
   authors {

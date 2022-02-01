@@ -9,7 +9,7 @@
   "main": "index.ts",
   "scripts": {
     "dev": "./dev_start.sh",
-    "build": "yarn prisma generate",
+    "build": "yarn install && yarn prisma generate",
     "tsc": "tsc -p tsconfig.json --noEmit",
     "test": "jest"
   },
@@ -23,6 +23,7 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^14.2.0",
+    "exponential-backoff": "^3.1.0",
     "express": "^4.17.2",
     "graphql": "15",
     "graphql-fields": "^2.0.3",

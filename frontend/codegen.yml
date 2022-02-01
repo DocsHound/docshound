@@ -8,6 +8,7 @@ documents: "graphql/**/*.graphql"
 config:
   scalars:
     Timestamp: number
+  avoidOptionals: true
 generates:
   generated/graphql_types.ts:
     plugins:

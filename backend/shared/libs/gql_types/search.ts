@@ -4,6 +4,7 @@ import {
   ObjectType,
   registerEnumType,
   GraphQLTimestamp,
+  InputType,
 } from 'type-graphql';
 import { Provider } from './integration';
 
@@ -20,31 +21,44 @@ registerEnumType(DocType, {
     'If applicable, specifies the type of the document within the provider (e.g., "DOC" for Google Docs, "SLIDE" for Google Slides, "FILE" for Slack files).',
 });
 
-@ObjectType()
-export class TextSlice {
-  // [start, end) slice of text.
-  @Field((_type) => Number)
-  s!: number;
-  @Field((_type) => Number)
-  e!: number;
-}
+@InputType({ description: 'provider + doc type (if applicable) to filter by' })
+export class ProviderDocType {
+  @Field((_type) => Provider)
+  provider!: Provider;
 
-@ObjectType()
-export class SearchResultText {
-  @Field((_type) => String)
-  text!: string;
-
-  @Field((_type) => [TextSlice])
-  matches!: Array<TextSlice>;
+  @Field((_type) => DocType, { nullable: true })
+  docType!: DocType | null;
 }
 
 @ObjectType()
 class ProviderResource {
   @Field((_type) => String)
-  resourceID!: String;
+  resourceID!: string;
 
   @Field((_type) => String, { nullable: true })
-  resourceName!: String | null;
+  resourceName!: string | null;
+
+  @Field((_type) => String, { nullable: true })
+  resourceURL!: string | null;
+}
+
+export enum TextType {
+  Raw = 'RAW',
+  Markdown = 'MARKDOWN',
+}
+
+registerEnumType(TextType, {
+  name: 'TextType',
+  description: 'How to render the given text.',
+});
+
+@ObjectType()
+class SearchResultText {
+  @Field((_type) => String)
+  text!: string;
+
+  @Field((_type) => TextType)
+  type!: TextType;
 }
 
 @ObjectType()
@@ -89,6 +103,9 @@ export class Message {
 
   @Field((_type) => ProviderResource, { nullable: true })
   author!: ProviderResource | null;
+
+  @Field((_type) => String, { nullable: true })
+  avatar!: string | null;
 
   @Field((_type) => GraphQLTimestamp, { nullable: true })
   created!: Date | null;

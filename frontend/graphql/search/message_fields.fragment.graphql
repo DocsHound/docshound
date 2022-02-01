@@ -3,18 +3,18 @@ fragment MessageFields on Message {
   group {
     resourceID
     resourceName
+    resourceURL
   }
   message {
     text
-    matches {
-      s
-      e
-    }
+    type
   }
   url
   author {
     resourceID
     resourceName
+    resourceURL
   }
+  avatar
   created
 }

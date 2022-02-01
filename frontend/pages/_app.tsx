@@ -8,7 +8,7 @@ import useAuth from 'hooks/useAuth';
 import { ReactNode } from 'react';
 import { ApolloProvider } from '@apollo/client';
 import { client } from 'shared/libs/apollo';
-import { AppUserContext, useAppUser } from 'contexts/AppUser';
+import { AppUserContext, useAppUser } from 'contexts';
 
 function MyApp({ Component, pageProps }: AppPropsWithLayout) {
   const getLayout = Component.getLayout ?? ((page) => page);

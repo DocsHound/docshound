@@ -14,3 +14,8 @@ a {
 * {
   box-sizing: border-box;
 }
+
+/* So that newline breaks work with ReactMarkdown */
+.react-markdown {
+  white-space: pre-wrap;
+}

@@ -53,6 +53,7 @@ export class MyGlobalApiCredentialResolver {
     });
 
     // Recreate client with new credentials.
+    // TODO(richardwu): need to broadcast updated credentials to all workers (use supabase realtime?)
     switch (provider) {
       case Provider.Slack:
         Slack.getOrCreateApp(ctx.prisma, true);

@@ -45,13 +45,13 @@ export enum DocType {
 export type Document = {
   __typename?: 'Document';
   authors: Array<ProviderResource>;
-  created?: Maybe<Scalars['Timestamp']>;
-  desc?: Maybe<SearchResultText>;
-  docType?: Maybe<DocType>;
-  lastUpdated?: Maybe<Scalars['Timestamp']>;
+  created: Maybe<Scalars['Timestamp']>;
+  desc: Maybe<SearchResultText>;
+  docType: Maybe<DocType>;
+  lastUpdated: Maybe<Scalars['Timestamp']>;
   provider: Provider;
-  title?: Maybe<Scalars['String']>;
-  url?: Maybe<Scalars['String']>;
+  title: Maybe<Scalars['String']>;
+  url: Maybe<Scalars['String']>;
 };
 
 export type GlobalApiCredential = {
@@ -66,12 +66,13 @@ export type GlobalApiCredential = {
 
 export type Message = {
   __typename?: 'Message';
-  author?: Maybe<ProviderResource>;
-  created?: Maybe<Scalars['Timestamp']>;
-  group?: Maybe<ProviderResource>;
-  message?: Maybe<SearchResultText>;
+  author: Maybe<ProviderResource>;
+  avatar: Maybe<Scalars['String']>;
+  created: Maybe<Scalars['Timestamp']>;
+  group: Maybe<ProviderResource>;
+  message: Maybe<SearchResultText>;
   provider: Provider;
-  url?: Maybe<Scalars['String']>;
+  url: Maybe<Scalars['String']>;
 };
 
 export type Mutation = {
@@ -90,7 +91,7 @@ export type MutationUpsertGlobalApiCredentialArgs = {
 export type MutationUpsertUserApiCredentialArgs = {
   credentialsJSON: Scalars['JSONObject'];
   provider: Provider;
-  userId?: InputMaybe<Scalars['String']>;
+  userId: InputMaybe<Scalars['String']>;
 };
 
 /** Third-party integration/provider */
@@ -103,19 +104,26 @@ export enum Provider {
   Slack = 'Slack'
 }
 
+/** provider + doc type (if applicable) to filter by */
+export type ProviderDocType = {
+  docType: InputMaybe<DocType>;
+  provider: Provider;
+};
+
 export type ProviderResource = {
   __typename?: 'ProviderResource';
   resourceID: Scalars['String'];
-  resourceName?: Maybe<Scalars['String']>;
+  resourceName: Maybe<Scalars['String']>;
+  resourceURL: Maybe<Scalars['String']>;
 };
 
 export type Query = {
   __typename?: 'Query';
-  globalApiCredential?: Maybe<DecryptedGlobalApiCredential>;
+  globalApiCredential: Maybe<DecryptedGlobalApiCredential>;
   /** This returns Global API credentials that are allowed to be viewed by the public (e.g., public client ID). */
-  publicGlobalApiCredential?: Maybe<DecryptedGlobalApiCredential>;
+  publicGlobalApiCredential: Maybe<DecryptedGlobalApiCredential>;
   search: Array<SearchResult>;
-  userApiCredential?: Maybe<DecryptedUserApiCredential>;
+  userApiCredential: Maybe<DecryptedUserApiCredential>;
 };
 
 
@@ -130,6 +138,7 @@ export type QueryPublicGlobalApiCredentialArgs = {
 
 
 export type QuerySearchArgs = {
+  providerDocTypes: InputMaybe<Array<ProviderDocType>>;
   query: Scalars['String'];
 };
 
@@ -142,15 +151,15 @@ export type SearchResult = Document | Message;
 
 export type SearchResultText = {
   __typename?: 'SearchResultText';
-  matches: Array<TextSlice>;
   text: Scalars['String'];
+  type: TextType;
 };
 
-export type TextSlice = {
-  __typename?: 'TextSlice';
-  e: Scalars['Float'];
-  s: Scalars['Float'];
-};
+/** How to render the given text. */
+export enum TextType {
+  Markdown = 'Markdown',
+  Raw = 'Raw'
+}
 
 export type UserApiCredential = {
   __typename?: 'UserApiCredential';
@@ -168,14 +177,14 @@ export type GlobalApiCredentialQueryVariables = Exact<{
 }>;
 
 
-export type GlobalApiCredentialQuery = { __typename?: 'Query', globalApiCredential?: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, credentialsJSON: any } | null | undefined };
+export type GlobalApiCredentialQuery = { __typename?: 'Query', globalApiCredential: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, credentialsJSON: any } | null | undefined };
 
 export type PublicGlobalApiCredentialQueryVariables = Exact<{
   provider: Provider;
 }>;
 
 
-export type PublicGlobalApiCredentialQuery = { __typename?: 'Query', publicGlobalApiCredential?: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, credentialsJSON: any } | null | undefined };
+export type PublicGlobalApiCredentialQuery = { __typename?: 'Query', publicGlobalApiCredential: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, credentialsJSON: any } | null | undefined };
 
 export type UpsertGlobalApiCredentialMutationVariables = Exact<{
   provider: Provider;
@@ -199,18 +208,19 @@ export type UserApiCredentialQueryVariables = Exact<{
 }>;
 
 
-export type UserApiCredentialQuery = { __typename?: 'Query', userApiCredential?: { __typename?: 'DecryptedUserApiCredential', userId: string, provider: Provider, credentialsJSON: any } | null | undefined };
+export type UserApiCredentialQuery = { __typename?: 'Query', userApiCredential: { __typename?: 'DecryptedUserApiCredential', userId: string, provider: Provider, credentialsJSON: any } | null | undefined };
 
-export type DocumentFieldsFragment = { __typename?: 'Document', provider: Provider, docType?: DocType | null | undefined, title?: string | null | undefined, url?: string | null | undefined, lastUpdated?: number | null | undefined, created?: number | null | undefined, desc?: { __typename?: 'SearchResultText', text: string, matches: Array<{ __typename?: 'TextSlice', s: number, e: number }> } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined }> };
+export type DocumentFieldsFragment = { __typename?: 'Document', provider: Provider, docType: DocType | null | undefined, title: string | null | undefined, url: string | null | undefined, lastUpdated: number | null | undefined, created: number | null | undefined, desc: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined }> };
 
-export type MessageFieldsFragment = { __typename?: 'Message', provider: Provider, url?: string | null | undefined, created?: number | null | undefined, group?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined } | null | undefined, message?: { __typename?: 'SearchResultText', text: string, matches: Array<{ __typename?: 'TextSlice', s: number, e: number }> } | null | undefined, author?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined } | null | undefined };
+export type MessageFieldsFragment = { __typename?: 'Message', provider: Provider, url: string | null | undefined, avatar: string | null | undefined, created: number | null | undefined, group: { __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined, resourceURL: string | null | undefined } | null | undefined, message: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, author: { __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined, resourceURL: string | null | undefined } | null | undefined };
 
 export type SearchQueryVariables = Exact<{
   query: Scalars['String'];
+  providerDocTypes: InputMaybe<Array<ProviderDocType> | ProviderDocType>;
 }>;
 
 
-export type SearchQuery = { __typename?: 'Query', search: Array<{ __typename?: 'Document', provider: Provider, docType?: DocType | null | undefined, title?: string | null | undefined, url?: string | null | undefined, lastUpdated?: number | null | undefined, created?: number | null | undefined, desc?: { __typename?: 'SearchResultText', text: string, matches: Array<{ __typename?: 'TextSlice', s: number, e: number }> } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined }> } | { __typename?: 'Message', provider: Provider, url?: string | null | undefined, created?: number | null | undefined, group?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined } | null | undefined, message?: { __typename?: 'SearchResultText', text: string, matches: Array<{ __typename?: 'TextSlice', s: number, e: number }> } | null | undefined, author?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined } | null | undefined }> };
+export type SearchQuery = { __typename?: 'Query', search: Array<{ __typename?: 'Document', provider: Provider, docType: DocType | null | undefined, title: string | null | undefined, url: string | null | undefined, lastUpdated: number | null | undefined, created: number | null | undefined, desc: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined }> } | { __typename?: 'Message', provider: Provider, url: string | null | undefined, avatar: string | null | undefined, created: number | null | undefined, group: { __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined, resourceURL: string | null | undefined } | null | undefined, message: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, author: { __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined, resourceURL: string | null | undefined } | null | undefined }> };
 
 export const DocumentFieldsFragmentDoc = gql`
     fragment DocumentFields on Document {
@@ -219,10 +229,7 @@ export const DocumentFieldsFragmentDoc = gql`
   title
   desc {
     text
-    matches {
-      s
-      e
-    }
+    type
   }
   url
   authors {
@@ -239,19 +246,19 @@ export const MessageFieldsFragmentDoc = gql`
   group {
     resourceID
     resourceName
+    resourceURL
   }
   message {
     text
-    matches {
-      s
-      e
-    }
+    type
   }
   url
   author {
     resourceID
     resourceName
+    resourceURL
   }
+  avatar
   created
 }
     `;
@@ -443,8 +450,8 @@ export type UserApiCredentialQueryHookResult = ReturnType<typeof useUserApiCrede
 export type UserApiCredentialLazyQueryHookResult = ReturnType<typeof useUserApiCredentialLazyQuery>;
 export type UserApiCredentialQueryResult = Apollo.QueryResult<UserApiCredentialQuery, UserApiCredentialQueryVariables>;
 export const SearchDocument = gql`
-    query search($query: String!) {
-  search(query: $query) {
+    query search($query: String!, $providerDocTypes: [ProviderDocType!]) {
+  search(query: $query, providerDocTypes: $providerDocTypes) {
     ... on Document {
       ...DocumentFields
     }
@@ -469,6 +476,7 @@ ${MessageFieldsFragmentDoc}`;
  * const { data, loading, error } = useSearchQuery({
  *   variables: {
  *      query: // value for 'query'
+ *      providerDocTypes: // value for 'providerDocTypes'
  *   },
  * });
  */

@@ -34,8 +34,11 @@ const dayOfWeek = (date: Date) => {
 };
 
 const mmmdd = (date: Date): string => {
-  const dateStr = `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
-  return dateStr;
+  return `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
+};
+
+const mmmddyyyy = (date: Date): string => {
+  return `${mmmdd(date)} ${date.getUTCFullYear()}`;
 };
 
 const hhmm = (date: Date, meridian: boolean): string => {
@@ -46,8 +49,40 @@ const hhmm = (date: Date, meridian: boolean): string => {
   return `${hours}:${minStr}${meridian ? (rawHours < 12 ? ' am' : ' pm') : ''}`;
 };
 
-export const humanReadableDatetime = (date: Date, meridian: boolean) => {
-  return `${dayOfWeek(date)} ${mmmdd(date)}, ${hhmm(date, meridian)}`;
+// Tues Jan 26, 11:20 PM
+export const humanReadableDatetime = (
+  date: Date,
+  meridian: boolean,
+  includeYear?: boolean
+) => {
+  return `${dayOfWeek(date)} ${(!!includeYear ? mmmddyyyy : mmmdd)(
+    date
+  )}, ${hhmm(date, meridian)}`;
+};
+
+export const secondsAgo = (date: Date): number => {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  return seconds;
+};
+
+// HH:MM a/pm if today.
+// Sat HH:MM am if within the past week (<= 6 days).
+// Nov 13 HH:MM am if within past year (<= 364 days).
+// Nov 13, 2019 HH:MM am if beyond past year.
+export const conditionalDatetime = (date: Date, meridian: boolean): string => {
+  let seconds = secondsAgo(date);
+
+  const timeStr = hhmm(date, meridian);
+
+  if (seconds < 86400 && date.getDay() == new Date().getDay()) {
+    return timeStr;
+  }
+
+  if (seconds <= 86400 * 6) {
+    return `${DAY_OF_WEEK[date.getDay()]} ${timeStr}`;
+  }
+
+  return humanReadableDatetime(date, meridian, seconds > 86400 * 364);
 };
 
 export const humanReadableDuration = (date1: Date, date2: Date) => {
