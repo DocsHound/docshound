@@ -1,20 +1,25 @@
 import { PrismaClient } from '@prisma/client';
-import { backOff } from 'exponential-backoff';
+import { backOff, IBackOffOptions } from 'exponential-backoff';
 import { App } from '@slack/bolt';
-import { ChatGetPermalinkResponse, SearchAllArguments } from '@slack/web-api';
-import { indexSlackMessage, SlackMessageDoc } from '../services/elasticsearch';
-import { captureError, captureErrorMsg } from '../services/errors';
-import { getGlobalAPICredential } from '../shared/libs/credential';
-import { DecryptedUserApiCredential } from '../shared/libs/gql_types/credential';
-import { Provider } from '../shared/libs/gql_types/integration';
+import { SearchAllArguments, WebAPICallResult } from '@slack/web-api';
+import {
+  ESIndexPayload,
+  indexSlackMessage,
+  SlackMessageDoc,
+} from 'services/elasticsearch';
+import { logger } from 'logging';
+import { getGlobalAPICredential } from 'shared/libs/credential';
+import { DecryptedUserApiCredential } from 'shared/libs/gql_types/credential';
+import { Provider } from 'shared/libs/gql_types/integration';
 import {
   Message,
   DocType,
   SearchResult,
   Document,
   TextType,
-} from '../shared/libs/gql_types/search';
+} from 'shared/libs/gql_types/search';
 import { Profile } from '@slack/web-api/dist/response/UsersProfileGetResponse';
+import { channelTypes } from '@slack/bolt/dist/types/events/message-events';
 
 // To add a new required token, simply add it to slackKeys.
 const slackClientIDKey = 'SLACK_CLIENT_ID';
@@ -39,13 +44,20 @@ export const getOrCreateApp = async (
   forceCreate: boolean = false
 ) => {
   if (app === null || forceCreate) {
-    console.debug('creating new Slack app instance...');
+    logger.debug('creating new Slack app instance...');
     const prev = app;
     app = await createApp(prisma);
     if (app) {
       // TODO(richardwu): hide behind worker type flag
       await attachListeners(app);
+      app.error(async (err) => {
+        logger.error(
+          `Slack Bolt app received error: ${err.code} ${err.message}, recreating app`
+        );
+        getOrCreateApp(prisma, true);
+      });
       await app.start();
+      await joinChannels(app);
     }
     // Stop previous instance
     await prev?.stop();
@@ -71,20 +83,53 @@ const createApp = async (prisma: PrismaClient) => {
   return app;
 };
 
-const retryWithBackoff = <T>(fn: () => Promise<T>) => {
+const retryWithBackoff = <T>(
+  fn: () => Promise<T>,
+  options?: Partial<IBackOffOptions>
+) => {
   return backOff(fn, {
     maxDelay: 1000,
     timeMultiple: 2,
     startingDelay: 100,
     numOfAttempts: 5,
     jitter: 'full',
-    retry: async (e: ChatGetPermalinkResponse) => {
+    retry: async (e: WebAPICallResult) => {
       // Errors that make sense to retry: https://api.slack.com/methods/chat.getPermalink#errors.
       return ['ratelimited', 'service_unavailable', 'internal_error'].includes(
         e.error ?? ''
       );
     },
+    ...options,
   });
+};
+
+const getPermalink = async (app: App, channelID: string, messageTS: string) => {
+  const permalink = await retryWithBackoff(
+    async () => {
+      const resp = await app.client.chat.getPermalink({
+        channel: channelID,
+        message_ts: messageTS,
+      });
+      if (!resp.ok) {
+        throw resp;
+      }
+      return resp.permalink ?? null;
+    },
+    {
+      numOfAttempts: 100,
+    }
+  );
+  return permalink;
+};
+
+const makeESIndexPayload = (
+  doc: SlackMessageDoc
+): ESIndexPayload<SlackMessageDoc> => {
+  return {
+    // Guaranteed uniqueness according to https://api.slack.com/messaging/retrieving#individual_messages.
+    id: `${doc.channelID}:${doc.ts}`,
+    doc,
+  };
 };
 
 const attachListeners = async (app: App) => {
@@ -104,11 +149,11 @@ const attachListeners = async (app: App) => {
         }
     */
     if (message.subtype !== undefined) {
-      console.debug('received non-generic message subtype', message.subtype);
+      logger.warn('received non-generic message subtype', message.subtype);
       return;
     }
-    console.debug(
-      'slack message received:',
+    logger.info(
+      'slack message received (channel: %s, ts: %s): %s',
       message.channel,
       message.ts,
       message.text
@@ -117,21 +162,10 @@ const attachListeners = async (app: App) => {
     // TODO(richardwu): push onto persistent queue (Kafka? Redis?)
 
     try {
-      const permalink = await retryWithBackoff(async () => {
-        const resp = await app.client.chat.getPermalink({
-          channel: message.channel,
-          message_ts: message.ts,
-        });
-        if (!resp.ok) {
-          throw resp;
-        }
-        return resp.permalink ?? null;
-      });
+      const permalink = await getPermalink(app, message.channel, message.ts);
 
       await indexSlackMessage(
-        // Guaranteed uniqueness according to https://api.slack.com/messaging/retrieving#individual_messages.
-        `${message.channel}:${message.ts}`,
-        {
+        makeESIndexPayload({
           ts: message.ts,
           clientMsgID: message.client_msg_id ?? null,
           text: message.text ?? null,
@@ -140,12 +174,103 @@ const attachListeners = async (app: App) => {
           channelID: message.channel,
           channelType: message.channel_type,
           permalink,
-        }
+        })
       );
     } catch (err) {
-      captureError(err);
+      logger.error(err);
     }
   });
+};
+
+// Joins all public channels.
+const joinChannels = async (app: App) => {
+  const resp = await app.client.conversations.list();
+  if (!resp.ok) {
+    return;
+  }
+
+  const availChannels =
+    resp.channels?.filter((channel) => !channel.is_member) ?? [];
+  if (availChannels.length)
+    logger.info(`joining ${availChannels.length} channels...`);
+
+  await Promise.all(
+    availChannels.map(async (channel) => {
+      await retryWithBackoff(async () => {
+        if (!channel.id) return;
+        const resp = await app.client.conversations.join({
+          channel: channel.id,
+        });
+        if (!resp.ok) {
+          throw resp;
+        }
+      });
+    })
+  );
+};
+
+// Tier-3: (50 calls/minute w/ bursts)
+export const indexChannel = async (
+  app: App,
+  channelID: string,
+  channelType: channelTypes,
+  oldestTS: string
+) => {
+  let nextCursor: string | null | undefined = null;
+  try {
+    while (nextCursor !== undefined) {
+      const resp = await retryWithBackoff(async () => {
+        const resp = await app.client.conversations.history({
+          channel: channelID,
+          oldest: oldestTS,
+          limit: 1000,
+          ...(nextCursor ? { cursor: nextCursor } : {}),
+        });
+        if (!resp.ok) {
+          throw resp;
+        }
+        return resp;
+      });
+
+      const messages: Array<ESIndexPayload<SlackMessageDoc>> = [];
+      // TODO(richardwu): consider allSettled?
+      (
+        await Promise.all(
+          resp.messages?.map(
+            async (
+              message
+            ): Promise<ESIndexPayload<SlackMessageDoc> | null> => {
+              if (!message.ts || !message.user) return null;
+              const permalink = await getPermalink(app, channelID, message.ts);
+
+              return makeESIndexPayload({
+                ts: message.ts,
+                clientMsgID: message.client_msg_id ?? null,
+                text: message.text ?? null,
+                userID: message.user,
+                teamID: message.team ?? null,
+                channelID,
+                channelType,
+                permalink,
+              });
+            }
+          ) ?? []
+        )
+      ).forEach((m) => {
+        if (m === null) return;
+        messages.push(m);
+      });
+      // await indexSlackMessage(...messages);
+      // TODO: log we've indexed up to latest TS.
+      if (resp.has_more) {
+        nextCursor = resp.response_metadata?.next_cursor;
+      } else {
+        nextCursor = undefined;
+      }
+    }
+  } catch (err) {
+    logger.error(err);
+  }
 };
 
 const tsToDate = (ts: string) => {
@@ -249,9 +374,7 @@ const resolveChannel = async (app: App, channelID: string) => {
     channel: channelID,
   });
   if (!resp.ok) {
-    captureErrorMsg(
-      `failed to resolve Slack channel ${channelID}: ${resp.error}`
-    );
+    logger.error(`failed to resolve Slack channel ${channelID}: ${resp.error}`);
     return null;
   }
   return resp.channel;
@@ -266,7 +389,7 @@ const resolveUser = async (
     user: userID,
   });
   if (!resp.ok) {
-    captureErrorMsg(`failed to resolve Slack user ${userID}: ${resp.error}`);
+    logger.error(`failed to resolve Slack user ${userID}: ${resp.error}`);
     return null;
   }
 

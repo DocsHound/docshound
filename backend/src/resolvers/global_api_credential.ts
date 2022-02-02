@@ -2,17 +2,14 @@ import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 import * as GraphQLScalars from 'graphql-scalars';
 import { GlobalApiCredential } from '@generated/type-graphql';
 import { AppRole, Prisma } from '@prisma/client';
-import { GraphQLContext } from '../types';
-import { encrypt } from '../services/crypto';
-import {
-  providerFields,
-  publicProviderFields,
-} from '../integrations/constants';
-import { arraysEqual } from '../utils/objects';
-import * as Slack from '../integrations/slack';
-import { getGlobalAPICredential } from '../shared/libs/credential';
-import { DecryptedGlobalApiCredential } from '../shared/libs/gql_types/credential';
-import { Provider } from '../shared/libs/gql_types/integration';
+import { GraphQLContext } from 'types';
+import { encrypt } from 'services/crypto';
+import { providerFields, publicProviderFields } from 'integrations/constants';
+import { arraysEqual } from 'utils/objects';
+import * as Slack from 'integrations/slack';
+import { getGlobalAPICredential } from 'shared/libs/credential';
+import { DecryptedGlobalApiCredential } from 'shared/libs/gql_types/credential';
+import { Provider } from 'shared/libs/gql_types/integration';
 
 @Resolver()
 export class MyGlobalApiCredentialResolver {

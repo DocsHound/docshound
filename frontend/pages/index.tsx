@@ -23,6 +23,8 @@ import {
   UnorderedList,
   ListItem,
   Code,
+  LinkOverlay,
+  LinkBox,
 } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -112,17 +114,34 @@ const MessageLogo = ({
   provider,
   avatar,
   username,
+  userURL,
 }: {
   provider: Provider;
   avatar: Maybe<string>;
   username: Maybe<string>;
+  userURL: Maybe<string>;
 }) => {
   const providerSrc = getIntegration(provider)['logoURI'];
   const alt = username ?? `${getIntegration(provider)['name']} message`;
-  if (avatar) {
-    return <DualLogo outerSrc={avatar} innerSrc={providerSrc} alt={alt} />;
+
+  const innerLogo = () => {
+    if (avatar) {
+      return <DualLogo outerSrc={avatar} innerSrc={providerSrc} alt={alt} />;
+    }
+    return <SingleLogo src={providerSrc} alt={alt} />;
+  };
+
+  if (userURL) {
+    return (
+      <LinkBox>
+        <NextLink href={userURL} passHref>
+          <LinkOverlay>{innerLogo()}</LinkOverlay>
+        </NextLink>
+      </LinkBox>
+    );
   }
-  return <SingleLogo src={providerSrc} alt={alt} />;
+
+  return innerLogo();
 };
 
 const FilterLogo = ({
@@ -234,6 +253,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
             provider={result.provider}
             avatar={result.avatar}
             username={result.author?.resourceName ?? null}
+            userURL={result.author?.resourceURL ?? null}
           />
           <VStack align="start" flex="1">
             <HStack>

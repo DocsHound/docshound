@@ -3,12 +3,13 @@ import http from 'http';
 import https from 'https';
 import * as fs from 'fs';
 import path from 'path';
+import { logger } from 'logging';
 
 export const useTLS = !!process.env.SSL_PATH;
 
 export const makeHTTPServer = (app: express.Express) => {
   if (useTLS) {
-    console.log('using https/TLS');
+    logger.info('using https/TLS');
     return https.createServer(
       {
         key: fs.readFileSync(
@@ -21,7 +22,7 @@ export const makeHTTPServer = (app: express.Express) => {
       app
     );
   } else {
-    console.log('using http (no TLS)');
+    logger.info('using http (no TLS)');
     return http.createServer(app);
   }
 };

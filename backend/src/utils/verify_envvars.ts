@@ -1,3 +1,5 @@
+import { logger } from 'logging';
+
 const REQUIRED_ENVVARS: string[] = [
   'API_CRED_AES_KEY',
   'DATABASE_URL',
@@ -24,7 +26,7 @@ export const verifyEnvVars = () => {
     if (!process.env[envvar]) badOptEnvVars.push(envvar);
   }
   if (badOptEnvVars.length)
-    console.warn(`Missing optional EnvVars: ${badOptEnvVars}`);
+    logger.warn(`Missing optional EnvVars: ${badOptEnvVars}`);
 };
 
 export const throwEnvVarError = (envvarName: string) => {

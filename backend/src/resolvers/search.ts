@@ -1,10 +1,10 @@
 import { AppRole } from '@prisma/client';
 import { Arg, Authorized, Ctx, Query, Resolver } from 'type-graphql';
-import { ProviderDocType, SearchResult } from '../shared/libs/gql_types/search';
-import { GraphQLContext } from '../types';
-import { searchSlackMessages } from '../services/elasticsearch';
-import { getOrCreateApp, parseSlackMessageDoc } from '../integrations/slack';
-import { Provider } from '../shared/libs/gql_types/integration';
+import { ProviderDocType, SearchResult } from 'shared/libs/gql_types/search';
+import { GraphQLContext } from 'types';
+import { searchSlackMessages } from 'services/elasticsearch';
+import { getOrCreateApp, parseSlackMessageDoc } from 'integrations/slack';
+import { Provider } from 'shared/libs/gql_types/integration';
 
 @Resolver()
 export class SearchResolver {

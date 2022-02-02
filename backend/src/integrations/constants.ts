@@ -1,4 +1,4 @@
-import { Provider } from '../shared/libs/gql_types/integration';
+import { Provider } from 'shared/libs/gql_types/integration';
 import { slackKeys, slackPublicKeys } from './slack';
 
 export const providerFields = (provider: Provider) => {

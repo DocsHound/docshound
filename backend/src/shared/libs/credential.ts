@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { decrypt } from '../../services/crypto';
+import { decrypt } from 'services/crypto';
 import { Provider } from './gql_types/integration';
 
 export const getGlobalAPICredential = async (

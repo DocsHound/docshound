@@ -1,10 +1,10 @@
 import { AppRole, PrismaClient } from '@prisma/client';
 import { AuthChecker, buildSchema } from 'type-graphql';
-import { GraphQLContext } from '../types';
-import { captureErrorMsg } from './errors';
-import { MyGlobalApiCredentialResolver } from '../resolvers/global_api_credential';
-import { MyUserApiCredentialResolver } from '../resolvers/user_api_credential';
-import { SearchResolver } from '../resolvers/search';
+import { GraphQLContext } from 'types';
+import { logger } from 'logging';
+import { MyGlobalApiCredentialResolver } from 'resolvers/global_api_credential';
+import { MyUserApiCredentialResolver } from 'resolvers/user_api_credential';
+import { SearchResolver } from 'resolvers/search';
 
 export const makeClient = () => {
   const prisma = new PrismaClient({
@@ -28,8 +28,8 @@ export const makeClient = () => {
     ],
   });
   prisma.$on('query', (e) => {
-    console.log('Query: ' + e.query);
-    console.log('Duration: ' + e.duration + 'ms');
+    logger.info('Query: %s', e.query);
+    logger.info('Duration: %d ms', e.duration);
   });
 
   return prisma;
@@ -60,7 +60,7 @@ const authChecker: AuthChecker<GraphQLContext> = ({ context, info }, roles) => {
     context.user?.role !== AppRole.ADMIN &&
     (!context.user || !roles.includes(context.user.role))
   ) {
-    captureErrorMsg(
+    logger.error(
       `endpoint "${opName}" requires ${roles} roles, user ${context.user?.id} has role ${context.user?.role}`
     );
     return false;

@@ -5,10 +5,10 @@ import { GraphQLSchema } from 'graphql';
 import express from 'express';
 import http from 'http';
 import https from 'https';
-import { GraphQLContext } from '../types';
-import { anonSupabase } from '../services/supabase';
-import { captureError } from '../services/errors';
-import { corsDevConfig } from '../utils/cors';
+import { GraphQLContext } from 'types';
+import { logger } from 'logging';
+import { corsDevConfig } from 'utils/cors';
+import { anonSupabase } from 'services/supabase';
 
 const DEV_USER_ID = '568a9bb6-da37-4225-a48a-bb6686ad3a38';
 
@@ -85,7 +85,7 @@ export const startServer = async (
           serverAdmin,
         };
       } catch (err) {
-        captureError(err);
+        logger.error(err);
         // We have to re-throw otherwise Apollo will think there is no error.
         throw err;
       }

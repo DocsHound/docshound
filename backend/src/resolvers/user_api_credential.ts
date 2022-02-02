@@ -2,11 +2,11 @@ import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 import * as GraphQLScalars from 'graphql-scalars';
 import { UserApiCredential } from '@generated/type-graphql';
 import { AppRole, Prisma } from '@prisma/client';
-import { GraphQLContext } from '../types';
-import { encrypt } from '../services/crypto';
-import { DecryptedUserApiCredential } from '../shared/libs/gql_types/credential';
-import { getUserAPICredential } from '../shared/libs/credential';
-import { Provider } from '../shared/libs/gql_types/integration';
+import { GraphQLContext } from 'types';
+import { encrypt } from 'services/crypto';
+import { DecryptedUserApiCredential } from 'shared/libs/gql_types/credential';
+import { getUserAPICredential } from 'shared/libs/credential';
+import { Provider } from 'shared/libs/gql_types/integration';
 
 @Resolver((_of) => UserApiCredential)
 export class MyUserApiCredentialResolver {

@@ -1,7 +1,7 @@
 import { Client } from '@elastic/elasticsearch';
 import { ResponseError } from '@elastic/elasticsearch/lib/errors';
 import { channelTypes } from '@slack/bolt/dist/types/events/message-events';
-import { captureError } from './errors';
+import { logger } from 'logging';
 
 export const client = new Client({
   node: process.env.ELASTICSEARCH_URL,
@@ -20,7 +20,7 @@ export const initIndices = async () => {
         // TODO(richardwu): Specify mappings for each field and additional indexes
         await client.indices.create({ index });
       } else {
-        captureError(err);
+        logger.error(err);
       }
     }
   }
@@ -60,12 +60,23 @@ interface ESSearchResult<T, Highlight = undefined> {
   };
 }
 
-export const indexSlackMessage = async (id: string, doc: SlackMessageDoc) => {
-  await client.index({
-    id,
-    index: ElasticIndex.SlackMessages,
-    body: doc,
-  });
+export interface ESIndexPayload<T> {
+  id: string;
+  doc: T;
+}
+
+export const indexSlackMessage = async (
+  ...messages: Array<ESIndexPayload<SlackMessageDoc>>
+) => {
+  await Promise.all(
+    messages.map(({ id, doc }) =>
+      client.index({
+        id,
+        index: ElasticIndex.SlackMessages,
+        body: doc,
+      })
+    )
+  );
   await client.indices.refresh({ index: ElasticIndex.SlackMessages });
 };
 
@@ -91,7 +102,7 @@ export const searchSlackMessages = async (query: string) => {
     },
   });
   if (resp.statusCode !== 200) {
-    console.error(
+    logger.error(
       `received non-200 status while searching Slack messages for "${query}": ${resp.warnings}`
     );
     return null;
@@ -99,7 +110,6 @@ export const searchSlackMessages = async (query: string) => {
 
   return resp.body.hits.hits.map((h) => {
     if (!!h.highlight?.text) {
-      console.log(h.highlight.text, h._source.text);
       return {
         ...h._source,
         text: h.highlight.text.join('…'),
