@@ -2,6 +2,12 @@
 
 DocsHound is an open-source workplace search and work hub platform. It connects to all your favorite apps — Notion, Slack, and Google Drive to name a few — and provides a singular interface to search across your files and documents.
 
+## Integrations
+
+### Slack
+
+Install the DocsHound app to your Workspace with `integrations/slack_manifest.yml` App Manifest. Then navigate to `/settings` on an Admin account (first registered user is always an Admin) and input the appropriate credentials from your newly created Slack app.
+
 ## Development
 
 ### Key endpoints

@@ -57,7 +57,11 @@ export const getOrCreateApp = async (
         getOrCreateApp(prisma, true);
       });
       await app.start();
+      // TODO(richardwu): hide behind worker type flag
       await joinChannels(app);
+      await indexChannels(prisma, app);
+    } else {
+      logger.debug('could not create Slack app: no credentials?');
     }
     // Stop previous instance
     await prev?.stop();
@@ -186,6 +190,7 @@ const attachListeners = async (app: App) => {
 const joinChannels = async (app: App) => {
   const resp = await app.client.conversations.list();
   if (!resp.ok) {
+    logger.error(`could not retrieve channels for joining: ${resp.error}`);
     return;
   }
 
@@ -209,19 +214,62 @@ const joinChannels = async (app: App) => {
   );
 };
 
+const indexChannels = async (prisma: PrismaClient, app: App) => {
+  const resp = await app.client.conversations.list();
+  if (!resp.ok) {
+    logger.error(`could not retrieve channels for indexing: ${resp.error}`);
+    return;
+  }
+
+  await Promise.all(
+    resp.channels?.map(async (channel) => {
+      if (!channel.id) return;
+      const type = channel.is_channel
+        ? 'channel'
+        : channel.is_group
+        ? 'group'
+        : channel.is_mpim
+        ? 'mpim'
+        : channel.is_im
+        ? 'im'
+        : null;
+      if (!type) return;
+      return await indexChannel(prisma, app, channel.id, type);
+    }) ?? []
+  );
+};
+
 // Tier-3: (50 calls/minute w/ bursts)
-export const indexChannel = async (
+const indexChannel = async (
+  prisma: PrismaClient,
   app: App,
   channelID: string,
-  channelType: channelTypes,
-  oldestTS: string
+  channelType: channelTypes
 ) => {
   let nextCursor: string | null | undefined = null;
+
+  const latest = await prisma.slackChannelIndexLog.findFirst({
+    where: {
+      channelID,
+    },
+    orderBy: {
+      latestTS: 'desc',
+    },
+  });
+  const oldestTS = latest?.latestTS ?? '0';
+  logger.info(
+    'indexing channel %s (type: %s, oldest: %s)...',
+    channelID,
+    channelType,
+    oldestTS
+  );
+
   try {
     while (nextCursor !== undefined) {
       const resp = await retryWithBackoff(async () => {
         const resp = await app.client.conversations.history({
           channel: channelID,
+          inclusive: false,
           oldest: oldestTS,
           limit: 1000,
           ...(nextCursor ? { cursor: nextCursor } : {}),
@@ -260,13 +308,53 @@ export const indexChannel = async (
         if (m === null) return;
         messages.push(m);
       });
-      // await indexSlackMessage(...messages);
-      // TODO: log we've indexed up to latest TS.
+
+      logger.info(
+        'retrieved %d messages for channel %s for indexing',
+        messages.length,
+        channelID
+      );
+      if (messages) {
+        await indexSlackMessage(...messages);
+        const latestTS = messages
+          .map((m) => m.doc.ts)
+          .sort()
+          .at(-1);
+        if (latestTS)
+          await prisma.slackChannelIndexLog.upsert({
+            where: {
+              channelID_latestTS: {
+                channelID,
+                latestTS,
+              },
+            },
+            update: {
+              nMessages: messages.length,
+            },
+            create: {
+              nMessages: messages.length,
+              channelID,
+              latestTS,
+            },
+          });
+        logger.info(
+          'marked latestTS retrieve for channel %s as %s',
+          channelID,
+          latestTS
+        );
+      }
+
       if (resp.has_more) {
         nextCursor = resp.response_metadata?.next_cursor;
       } else {
         nextCursor = undefined;
       }
+      logger.info(
+        'done indexing %d messages for channel %s, more? %s',
+        messages.length,
+        channelID,
+        resp.has_more
+      );
     }
   } catch (err) {
     logger.error(err);

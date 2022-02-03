@@ -20,7 +20,6 @@ import { assertEnvVar } from 'shared/libs/envvars';
 import { supabase } from 'shared/libs/supabase';
 import { capitalize } from 'shared/libs/strings';
 import useToast from 'hooks/useToast';
-import { logger } from 'logging';
 
 const VALID_PROVIDERS: (Provider | 'email')[] = ['google', 'github', 'email'];
 
@@ -120,7 +119,7 @@ const Login = ({ loginProviders }: { loginProviders: string[] }) => {
         { redirectTo: `${window.location.protocol}//${window.location.host}` }
       );
       // NB: this proceeds shortly before redirecting to OAuth Screen, not after a success!
-      logger.debug(`signing in with ${provider}: ${user}, ${session}`);
+      logging.debug(`signing in with ${provider}: ${user}, ${session}`);
       if (error) throw error;
     } catch (err: any) {
       toast({

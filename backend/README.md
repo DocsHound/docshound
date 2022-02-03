@@ -7,10 +7,6 @@
 cp .example.env .env
 ```
 
-## Integrations
-
-### Slack
-
 ## ElasticSearch
 
 Create docker network `docker network create elastic`.
@@ -57,3 +53,13 @@ EXTERNAL_GOOGLE_REDIRECT_URI=http://localhost:8000/auth/v1/callback
 ```
 
 Restart the docker images with `docker-compose up`. Navigating to `http://localhost:8000/auth/v1/authorize?provider=google` should now redirect to the provider's OAuth consent screen.
+
+## Resetting DB
+
+There may be cases where Prisma may prompt you to reset the DB (due to change in migration file), or you simply want to reset the entire DB and start from scratch.
+
+If you let Prisma reset the schema, you may run into weird Supabase authentication issues.
+
+To completely reset the DB, simply stop the Supabase docker containers (`docker stop supabase-*`) and remove the DB image `docker container rm supabase-db`.
+
+Then run `yarn prisma migrate dev` to re-sync the DB.

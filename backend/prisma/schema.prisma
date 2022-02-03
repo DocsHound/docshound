@@ -16,6 +16,9 @@ enum AppRole {
   ADMIN
 }
 
+// For all new tables, remember to create a manual migration to add RLS since we share the DB w/ Supabase.
+// To do this, you can run `yarn prisma migrate dev --create-only` and edit the resulting migration file.
+
 // Remember to update handle_new_user() function trigger OR set a default value
 // when adding a new field here.
 model User {
@@ -47,4 +50,13 @@ model UserApiCredential {
   updatedAt         DateTime          @updatedAt @default(now())
 
   @@unique([userId, provider])
+}
+
+model SlackChannelIndexLog {
+  channelID String
+  latestTS String
+  nMessages Int
+  createdAt         DateTime          @default(now())
+
+  @@id([channelID, latestTS])
 }

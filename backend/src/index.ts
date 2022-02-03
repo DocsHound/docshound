@@ -12,7 +12,7 @@ import { makeClient, makeSchema } from 'services/prisma';
 import { makeHTTPServer, useTLS } from 'services/httpserver';
 import { corsDevConfig } from 'utils/cors';
 import { initIndices } from 'services/elasticsearch';
-import { getOrCreateApp, indexChannel } from 'integrations/slack';
+import { getOrCreateApp } from 'integrations/slack';
 import { logger } from 'logging';
 
 let serverListening = false;
@@ -31,26 +31,6 @@ app.get('/', statusCallback);
 app.get('/status', statusCallback);
 app.get('/healthz', (_req, res) => {
   return res.status(serverListening ? 200 : 400).send(serverListening);
-});
-
-app.get('/slack', async (_req, res) => {
-  const bob = await getOrCreateApp(prisma);
-  if (!bob) {
-    res.send('OK');
-    return;
-  }
-  await indexChannel(bob, 'C02U5GJ2VB9', 'channel', '0');
-  res.send('OK');
-});
-
-app.get('/slack2', async (_req, res) => {
-  const bob = await getOrCreateApp(prisma);
-  if (!bob) {
-    res.send('OK');
-    return;
-  }
-
-  res.send('OK');
 });
 
 const main = async () => {

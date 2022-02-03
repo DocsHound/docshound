@@ -11,14 +11,45 @@ enum ElasticIndex {
   SlackMessages = 'slack-messages',
 }
 
+const indexMappings = {
+  [ElasticIndex.SlackMessages]: {
+    properties: {
+      ts: {
+        type: 'keyword',
+      },
+      clientMsgID: {
+        type: 'keyword',
+      },
+      text: {
+        type: 'text',
+      },
+      userID: {
+        type: 'keyword',
+      },
+      teamID: {
+        type: 'keyword',
+      },
+      channelID: {
+        type: 'keyword',
+      },
+      channelType: {
+        type: 'keyword',
+      },
+      permalink: {
+        type: 'keyword',
+      },
+    },
+  },
+};
+
 export const initIndices = async () => {
   for (const index of Object.values(ElasticIndex)) {
     try {
       await client.indices.get({ index });
     } catch (err) {
       if (err instanceof ResponseError && err.statusCode === 404) {
-        // TODO(richardwu): Specify mappings for each field and additional indexes
         await client.indices.create({ index });
+        await client.indices.putMapping({ index, body: indexMappings[index] });
       } else {
         logger.error(err);
       }
@@ -36,6 +67,8 @@ export interface SlackMessageDoc {
   channelType: channelTypes;
   permalink: string | null;
 }
+
+const slackMapping = {};
 
 interface ESSearchResult<T, Highlight = undefined> {
   _shards: {
@@ -99,6 +132,7 @@ export const searchSlackMessages = async (query: string) => {
           text: {},
         },
       },
+      sort: ['_score', { 'ts.keyword': 'desc' }],
     },
   });
   if (resp.statusCode !== 200) {
