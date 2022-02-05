@@ -16,6 +16,9 @@ registerEnumType(Provider, {
 });
 
 export enum GlobalCredentialKey {
+  // Confluence Cloud.
+  ConfCloudClientID = 'CONF_CLOUD_CLIENT_ID',
+  ConfCloudClientSecret = 'CONF_CLOUD_CLIENT_SECRET',
   // Slack.
   SlackClientID = 'SLACK_CLIENT_ID',
   SlackClientSecret = 'SLACK_CLIENT_SECRET',

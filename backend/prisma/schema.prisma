@@ -22,41 +22,44 @@ enum AppRole {
 // Remember to update handle_new_user() function trigger OR set a default value
 // when adding a new field here.
 model User {
-  id   String     @id @db.Uuid
-  role AppRole    @default(USER)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt @default(now())
+  id        String   @id @db.Uuid
+  role      AppRole  @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   apiCredentials UserApiCredential[]
 }
 
 model GlobalApiCredential {
-  id                   Int @id @default(autoincrement())
-  provider             String @unique
-  encryptionIV         String
-  encryptedCredentials String
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt @default(now())
+  id                             Int      @id @default(autoincrement())
+  provider                       String   @unique
+  encryptionIV                   String
+  encryptedCredentials           String
+  // For shared admin-user access tokens (e.g., Confluence Cloud).
+  encryptedSharedUserCredentials String?
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @default(now()) @updatedAt
 }
 
+// For user-based permissioning (e.g., Slack search).
 model UserApiCredential {
-  id                   Int @id @default(autoincrement())
-  provider             String 
-  user                User @relation(fields: [userId], references: [id])
-  userId      String @db.Uuid
+  id                   Int      @id @default(autoincrement())
+  provider             String
+  user                 User     @relation(fields: [userId], references: [id])
+  userId               String   @db.Uuid
   encryptionIV         String
   encryptedCredentials String
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now()) @updatedAt
 
   @@unique([userId, provider])
 }
 
 model SlackChannelIndexLog {
   channelID String
-  latestTS String
+  latestTS  String
   nMessages Int
-  createdAt         DateTime          @default(now())
+  createdAt DateTime @default(now())
 
   @@id([channelID, latestTS])
 }

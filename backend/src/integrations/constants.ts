@@ -7,7 +7,10 @@ export const providerFields = (
   provider: Provider
 ): Array<GlobalCredentialKey> => {
   return {
-    [Provider.ConfluenceCloud]: [],
+    [Provider.ConfluenceCloud]: [
+      GlobalCredentialKey.ConfCloudClientID,
+      GlobalCredentialKey.ConfCloudClientSecret,
+    ],
     [Provider.ConfluenceServer]: [],
     [Provider.Github]: [],
     [Provider.GoogleDrive]: [],
@@ -28,7 +31,7 @@ export const publicProviderFields = (
   provider: Provider
 ): Array<GlobalCredentialKey> => {
   return {
-    [Provider.ConfluenceCloud]: [],
+    [Provider.ConfluenceCloud]: [GlobalCredentialKey.ConfCloudClientID],
     [Provider.ConfluenceServer]: [],
     [Provider.Github]: [],
     [Provider.GoogleDrive]: [],

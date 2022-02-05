@@ -32,7 +32,9 @@ const provider = Provider.Slack;
 
 let app: App | null = null;
 
-export const getOrCreateApp = async (
+// This function will create the main Bolt app (w/ listeners). For worker jobs
+// use createApp.
+export const getOrCreateMainApp = async (
   prisma: PrismaClient,
   forceCreate: boolean = false
 ) => {
@@ -47,12 +49,11 @@ export const getOrCreateApp = async (
         logger.error(
           `Slack Bolt app received error: ${err.code} ${err.message}, recreating app`
         );
-        getOrCreateApp(prisma, true);
+        getOrCreateMainApp(prisma, true);
       });
       await app.start();
       // TODO(richardwu): hide behind worker type flag
       await joinChannels(app);
-      await indexChannels(prisma, app);
     } else {
       logger.debug('could not create Slack app: no credentials?');
     }
@@ -62,7 +63,7 @@ export const getOrCreateApp = async (
   return app;
 };
 
-const createApp = async (prisma: PrismaClient) => {
+export const createApp = async (prisma: PrismaClient) => {
   const creds = await getGlobalAPICredential(prisma, provider);
   if (!creds) {
     return null;
@@ -182,7 +183,7 @@ const attachListeners = async (app: App) => {
 };
 
 // Joins all public channels.
-const joinChannels = async (app: App) => {
+export const joinChannels = async (app: App) => {
   const resp = await app.client.conversations.list();
   if (!resp.ok) {
     logger.error(`could not retrieve channels for joining: ${resp.error}`);
@@ -209,7 +210,7 @@ const joinChannels = async (app: App) => {
   );
 };
 
-const indexChannels = async (prisma: PrismaClient, app: App) => {
+export const indexChannels = async (prisma: PrismaClient, app: App) => {
   const resp = await app.client.conversations.list();
   if (!resp.ok) {
     logger.error(`could not retrieve channels for indexing: ${resp.error}`);

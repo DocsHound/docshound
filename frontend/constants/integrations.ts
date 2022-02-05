@@ -54,32 +54,57 @@ export const integrations: { [key in Provider]: Integration } = {
 export const getOAuthInfo = (
   provider: Provider
   // TODO: change return type to GlobalCredentialKey
-): { clientIDKey: string; clientSecretKey: string; oauthURI: string } => {
+): {
+  clientIDKey: string;
+  clientSecretKey: string;
+  oauthURI: string;
+  callbackName: string;
+} => {
   return {
-    [Provider.Github]: { clientIDKey: '', clientSecretKey: '', oauthURI: '' },
-    [Provider.Notion]: { clientIDKey: '', clientSecretKey: '', oauthURI: '' },
+    [Provider.Github]: {
+      clientIDKey: '',
+      clientSecretKey: '',
+      oauthURI: '',
+      callbackName: 'github',
+    },
+    [Provider.Notion]: {
+      clientIDKey: '',
+      clientSecretKey: '',
+      oauthURI: '',
+      callbackName: 'notion',
+    },
     [Provider.Slack]: {
       clientIDKey: GlobalCredentialKey.SlackClientId,
       clientSecretKey: GlobalCredentialKey.SlackClientSecret,
       // See https://api.slack.com/methods/oauth.v2.access for examples of responses.
       oauthURI: 'https://slack.com/api/oauth.v2.access',
+      callbackName: 'slack',
     },
     [Provider.GoogleDrive]: {
       clientIDKey: '',
       clientSecretKey: '',
       oauthURI: '',
+      callbackName: 'google_drive',
     },
     [Provider.ConfluenceCloud]: {
-      clientIDKey: '',
-      clientSecretKey: '',
-      oauthURI: '',
+      clientIDKey: GlobalCredentialKey.ConfCloudClientId,
+      clientSecretKey: GlobalCredentialKey.ConfCloudClientSecret,
+      // See https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/#2--exchange-authorization-code-for-access-token.
+      oauthURI: 'https://auth.atlassian.com/oauth/token',
+      callbackName: 'confluence_cloud',
     },
     [Provider.ConfluenceServer]: {
       clientIDKey: '',
       clientSecretKey: '',
       oauthURI: '',
+      callbackName: 'confluence_server',
     },
-    [Provider.Jira]: { clientIDKey: '', clientSecretKey: '', oauthURI: '' },
+    [Provider.Jira]: {
+      clientIDKey: '',
+      clientSecretKey: '',
+      oauthURI: '',
+      callbackName: 'jira',
+    },
   }[provider];
 };
 

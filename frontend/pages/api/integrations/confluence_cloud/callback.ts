@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { Provider } from 'generated/graphql_types';
 import { callbackHandler } from 'shared/libs/integrations/callback';
 
-const provider = Provider.Slack;
+const provider = Provider.ConfluenceCloud;
 
 export default async function handler(
   req: NextApiRequest,

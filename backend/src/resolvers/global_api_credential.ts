@@ -1,6 +1,7 @@
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
+import * as GraphQLScalars from 'graphql-scalars';
 import { GlobalApiCredential } from '@generated/type-graphql';
-import { AppRole } from '@prisma/client';
+import { AppRole, Prisma } from '@prisma/client';
 import { GraphQLContext } from 'types';
 import { encrypt } from 'services/crypto';
 import { providerFields, publicProviderFields } from 'integrations/constants';
@@ -58,9 +59,53 @@ export class MyGlobalApiCredentialResolver {
     // TODO(richardwu): need to broadcast updated credentials to all workers (use supabase realtime?)
     switch (provider) {
       case Provider.Slack:
-        Slack.getOrCreateApp(ctx.prisma, true);
+        Slack.getOrCreateMainApp(ctx.prisma, true);
         break;
     }
+
+    return ret;
+  }
+
+  @Authorized(AppRole.ADMIN)
+  @Mutation((_returns) => GlobalApiCredential)
+  async updateGlobalSharedUserCredential(
+    @Ctx() ctx: GraphQLContext,
+    @Arg('provider', (_type) => Provider) provider: Provider,
+    @Arg('credentialsJSON', (_type) => GraphQLScalars.JSONObjectResolver)
+    credentialsJSON: Prisma.JsonObject
+  ): Promise<GlobalApiCredential> {
+    const secretKey = process.env.API_CRED_AES_KEY;
+    if (!secretKey) {
+      throw new Error('missing API_CRED_AES_KEY envvar');
+    }
+
+    // TODO(richardwu): wrap in PRISMA transaction once
+    // https://github.com/prisma/prisma/issues/9846#issuecomment-1029837126 merges.
+    const creds = await ctx.prisma.globalApiCredential.findUnique({
+      where: {
+        provider,
+      },
+    });
+    if (!creds) {
+      throw new Error(`no existing API credentials for ${provider}`);
+    }
+
+    const { content } = encrypt(
+      JSON.stringify(credentialsJSON),
+      secretKey,
+      creds.encryptionIV
+    );
+
+    const ret = await ctx.prisma.globalApiCredential.update({
+      where: {
+        provider,
+      },
+      data: {
+        encryptedSharedUserCredentials: content,
+      },
+    });
+
+    // TODO(richardwu): Recreate client with new credentials if applicable.
 
     return ret;
   }

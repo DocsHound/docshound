@@ -12,8 +12,9 @@ import { makeClient, makeSchema } from 'services/prisma';
 import { makeHTTPServer, useTLS } from 'services/httpserver';
 import { corsDevConfig } from 'utils/cors';
 import { initIndices } from 'services/elasticsearch';
-import { getOrCreateApp } from 'integrations/slack';
+import { getOrCreateMainApp } from 'integrations/slack';
 import { logger } from 'logging';
+import { scheduleBatchJobs } from 'services/job_queues';
 
 let serverListening = false;
 const app = express();
@@ -40,7 +41,7 @@ const main = async () => {
 
   // Initialize Slack app.
   try {
-    await getOrCreateApp(prisma);
+    await getOrCreateMainApp(prisma);
   } catch (err) {
     logger.error(err);
   }
@@ -51,6 +52,10 @@ const main = async () => {
   } catch (err) {
     logger.error(err);
   }
+
+  // Schedule batch jobs.
+  // TODO(richardwu): track jobs somewhere
+  const jobs = await scheduleBatchJobs(prisma);
 
   httpServer.listen({ port: process.env.PORT }, async () => {
     serverListening = true;

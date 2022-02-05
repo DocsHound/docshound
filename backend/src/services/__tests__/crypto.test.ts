@@ -12,6 +12,16 @@ describe('crypto', () => {
     }
   });
 
+  it('round trips with specified iv', () => {
+    const tempIV = crypto.randomBytes(16).toString('hex');
+
+    for (const content of ['', 'hello', { secret: 123, token: 'ab1' }]) {
+      const payload = encrypt(JSON.stringify(content), key, tempIV);
+      expect(JSON.parse(decrypt(payload, key))).toEqual(content);
+      expect(payload.iv).toEqual(tempIV);
+    }
+  });
+
   it('fails with wrong iv', () => {
     const content = 'hello';
     expect(

@@ -58,6 +58,7 @@ export type GlobalApiCredential = {
   __typename?: 'GlobalApiCredential';
   createdAt: Scalars['Timestamp'];
   encryptedCredentials: Scalars['String'];
+  encryptedSharedUserCredentials: Maybe<Scalars['String']>;
   encryptionIV: Scalars['String'];
   id: Scalars['Int'];
   provider: Scalars['String'];
@@ -71,6 +72,8 @@ export type GlobalCredentialInputKv = {
 
 /** Key names which map to integration credential keys/secrets. */
 export enum GlobalCredentialKey {
+  ConfCloudClientId = 'ConfCloudClientID',
+  ConfCloudClientSecret = 'ConfCloudClientSecret',
   SlackAppToken = 'SlackAppToken',
   SlackBotToken = 'SlackBotToken',
   SlackClientId = 'SlackClientID',
@@ -97,8 +100,15 @@ export type Message = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  updateGlobalSharedUserCredential: GlobalApiCredential;
   upsertGlobalApiCredential: GlobalApiCredential;
   upsertUserApiCredential: UserApiCredential;
+};
+
+
+export type MutationUpdateGlobalSharedUserCredentialArgs = {
+  credentialsJSON: Scalars['JSONObject'];
+  provider: Provider;
 };
 
 
@@ -206,6 +216,14 @@ export type PublicGlobalApiCredentialQueryVariables = Exact<{
 
 
 export type PublicGlobalApiCredentialQuery = { __typename?: 'Query', publicGlobalApiCredential: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, data: Array<{ __typename?: 'GlobalCredentialOutputKV', key: GlobalCredentialKey, value: string | null | undefined }> } | null | undefined };
+
+export type UpdateGlobalSharedUserCredentialMutationVariables = Exact<{
+  provider: Provider;
+  credentialsJSON: Scalars['JSONObject'];
+}>;
+
+
+export type UpdateGlobalSharedUserCredentialMutation = { __typename?: 'Mutation', updateGlobalSharedUserCredential: { __typename?: 'GlobalApiCredential', id: number } };
 
 export type UpsertGlobalApiCredentialMutationVariables = Exact<{
   provider: Provider;
@@ -363,6 +381,43 @@ export function usePublicGlobalApiCredentialLazyQuery(baseOptions?: Apollo.LazyQ
 export type PublicGlobalApiCredentialQueryHookResult = ReturnType<typeof usePublicGlobalApiCredentialQuery>;
 export type PublicGlobalApiCredentialLazyQueryHookResult = ReturnType<typeof usePublicGlobalApiCredentialLazyQuery>;
 export type PublicGlobalApiCredentialQueryResult = Apollo.QueryResult<PublicGlobalApiCredentialQuery, PublicGlobalApiCredentialQueryVariables>;
+export const UpdateGlobalSharedUserCredentialDocument = gql`
+    mutation updateGlobalSharedUserCredential($provider: Provider!, $credentialsJSON: JSONObject!) {
+  updateGlobalSharedUserCredential(
+    provider: $provider
+    credentialsJSON: $credentialsJSON
+  ) {
+    id
+  }
+}
+    `;
+export type UpdateGlobalSharedUserCredentialMutationFn = Apollo.MutationFunction<UpdateGlobalSharedUserCredentialMutation, UpdateGlobalSharedUserCredentialMutationVariables>;
+
+/**
+ * __useUpdateGlobalSharedUserCredentialMutation__
+ *
+ * To run a mutation, you first call `useUpdateGlobalSharedUserCredentialMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateGlobalSharedUserCredentialMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateGlobalSharedUserCredentialMutation, { data, loading, error }] = useUpdateGlobalSharedUserCredentialMutation({
+ *   variables: {
+ *      provider: // value for 'provider'
+ *      credentialsJSON: // value for 'credentialsJSON'
+ *   },
+ * });
+ */
+export function useUpdateGlobalSharedUserCredentialMutation(baseOptions?: Apollo.MutationHookOptions<UpdateGlobalSharedUserCredentialMutation, UpdateGlobalSharedUserCredentialMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateGlobalSharedUserCredentialMutation, UpdateGlobalSharedUserCredentialMutationVariables>(UpdateGlobalSharedUserCredentialDocument, options);
+      }
+export type UpdateGlobalSharedUserCredentialMutationHookResult = ReturnType<typeof useUpdateGlobalSharedUserCredentialMutation>;
+export type UpdateGlobalSharedUserCredentialMutationResult = Apollo.MutationResult<UpdateGlobalSharedUserCredentialMutation>;
+export type UpdateGlobalSharedUserCredentialMutationOptions = Apollo.BaseMutationOptions<UpdateGlobalSharedUserCredentialMutation, UpdateGlobalSharedUserCredentialMutationVariables>;
 export const UpsertGlobalApiCredentialDocument = gql`
     mutation upsertGlobalApiCredential($provider: Provider!, $data: [GlobalCredentialInputKV!]!) {
   upsertGlobalApiCredential(provider: $provider, data: $data) {
@@ -523,6 +578,7 @@ export const namedOperations = {
     search: 'search'
   },
   Mutation: {
+    updateGlobalSharedUserCredential: 'updateGlobalSharedUserCredential',
     upsertGlobalApiCredential: 'upsertGlobalApiCredential',
     upsertUserApiCredential: 'upsertUserApiCredential'
   },

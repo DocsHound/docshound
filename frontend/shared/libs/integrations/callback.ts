@@ -3,23 +3,25 @@ import {
   GlobalApiCredentialDocument,
   Provider,
   Query,
+  UpdateGlobalSharedUserCredentialDocument,
   UpsertUserApiCredentialDocument,
 } from 'generated/graphql_types';
 import FormData from 'form-data';
-import fetch from 'node-fetch';
+import fetch, { Response } from 'node-fetch';
 import { client } from 'shared/libs/apollo';
 import { supabase } from 'shared/libs/supabase';
 import { getOAuthInfo, integrations } from 'constants/integrations';
 import { globalCredentialMap } from '../credential';
+import { logger } from 'logging';
 
 export const callbackHandler = async (
   req: NextApiRequest,
   res: NextApiResponse,
   provider: Provider
 ) => {
-  const redirectURI = `https://${
-    req.headers.host
-  }/api/integrations/${provider.toLowerCase()}/callback`;
+  const { clientIDKey, clientSecretKey, oauthURI, callbackName } =
+    getOAuthInfo(provider);
+  const redirectURI = `https://${req.headers.host}/api/integrations/${callbackName}/callback`;
   const providerName = integrations[provider].name;
 
   if ('error' in req.query) {
@@ -55,9 +57,6 @@ export const callbackHandler = async (
   }
 
   // Retrieve access token for user.
-  const formData = new FormData();
-  formData.append('code', req.query['code'] as string);
-  formData.append('redirect_uri', redirectURI);
 
   let result: Query['globalApiCredential'];
   try {
@@ -75,8 +74,6 @@ export const callbackHandler = async (
     );
     return;
   }
-
-  const { clientIDKey, clientSecretKey, oauthURI } = getOAuthInfo(provider);
 
   const creds = globalCredentialMap(result?.data);
 
@@ -99,16 +96,51 @@ export const callbackHandler = async (
     return;
   }
 
-  formData.append('client_id', clientID);
-  formData.append('client_secret', secret);
-  const resp = await fetch(oauthURI, {
-    method: 'POST',
-    body: formData,
-  });
-  if (!resp.ok) {
+  let resp: Response | null = null;
+  if (provider === Provider.Slack) {
+    const formData = new FormData();
+    formData.append('code', req.query['code'] as string);
+    formData.append('redirect_uri', redirectURI);
+    formData.append('client_id', clientID);
+    formData.append('client_secret', secret);
+    resp = await fetch(oauthURI, {
+      method: 'POST',
+      body: formData,
+    });
+  } else if (provider === Provider.ConfluenceCloud) {
+    // First get refresh token.
+    const data = JSON.stringify({
+      grant_type: 'authorization_code',
+      code: req.query['code'],
+      redirect_uri: redirectURI,
+      client_id: clientID,
+      client_secret: secret,
+    });
+    resp = await fetch(oauthURI, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: data,
+    });
+  } else {
     res.redirect(
       `/integrations?status=error&message=${encodeURIComponent(
-        `Could not connect to ${providerName}: ${resp.status} ${resp.statusText}`
+        `Unsupported provider ${provider}`
+      )}`
+    );
+  }
+
+  if (resp === null || !resp.ok) {
+    logger.error(
+      'error with OAuth call for %s: %s',
+      provider,
+      await resp?.text()
+    );
+    res.redirect(
+      `/integrations?status=error&message=${encodeURIComponent(
+        `Could not connect to ${providerName}: ${resp?.status} ${resp?.statusText}`
       )}`
     );
     return;
@@ -116,7 +148,8 @@ export const callbackHandler = async (
 
   const respJSON: { ok: boolean; error?: string } = (await resp.json()) as any;
 
-  if (!respJSON.ok) {
+  // Only Slack has ok parameter.
+  if (provider === Provider.Slack && !respJSON.ok) {
     res.redirect(
       `/integrations?status=error&message=${encodeURIComponent(
         `Could not connect to ${providerName}: ${respJSON.error}`
@@ -125,15 +158,36 @@ export const callbackHandler = async (
     return;
   }
 
+  // NB: we use the GraphQL endpoint here instead of supabase CRUD
+  // since we need server-side encryption.
+
   try {
-    await client.mutate({
-      mutation: UpsertUserApiCredentialDocument,
-      variables: {
-        userId: user.id,
-        provider,
-        credentialsJSON: respJSON,
-      },
-    });
+    if (provider === Provider.Slack) {
+      // User-specific token providers.
+      await client.mutate({
+        mutation: UpsertUserApiCredentialDocument,
+        variables: {
+          userId: user.id,
+          provider,
+          credentialsJSON: respJSON,
+        },
+      });
+    } else if (provider === Provider.ConfluenceCloud) {
+      // Shared access token providers.
+      await client.mutate({
+        mutation: UpdateGlobalSharedUserCredentialDocument,
+        variables: {
+          provider,
+          credentialsJSON: respJSON,
+        },
+      });
+    } else {
+      res.redirect(
+        `/integrations?status=error&message=${encodeURIComponent(
+          `Unsupported provider ${provider}`
+        )}`
+      );
+    }
   } catch (err) {
     res.redirect(
       `/integrations?status=error&message=${encodeURIComponent(

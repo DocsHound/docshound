@@ -3,7 +3,7 @@ import { Arg, Authorized, Ctx, Query, Resolver } from 'type-graphql';
 import { ProviderDocType, SearchResult } from 'shared/libs/gql_types/search';
 import { GraphQLContext } from 'types';
 import { searchSlackMessages } from 'services/elasticsearch';
-import { getOrCreateApp, parseSlackMessageDoc } from 'integrations/slack';
+import { getOrCreateMainApp, parseSlackMessageDoc } from 'integrations/slack';
 import { Provider } from 'shared/libs/gql_types/integration';
 
 @Resolver()
@@ -31,7 +31,7 @@ export class SearchResolver {
     ) {
       const slackResults = await searchSlackMessages(query);
       if (slackResults) {
-        const app = await getOrCreateApp(ctx.prisma);
+        const app = await getOrCreateMainApp(ctx.prisma);
         (
           await Promise.allSettled(
             slackResults.map((r) => parseSlackMessageDoc(app, r))

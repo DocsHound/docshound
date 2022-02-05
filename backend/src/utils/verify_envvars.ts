@@ -6,6 +6,7 @@ const REQUIRED_ENVVARS: string[] = [
   'ELASTICSEARCH_URL',
   'NODE_ENV',
   'PORT',
+  'REDIS_URL',
   'SERVER_ADMIN_SECRET',
 ];
 
