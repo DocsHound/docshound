@@ -32,7 +32,7 @@ export const integrations: { [key in Provider]: Integration } = {
     bgColor: 'yellow.50',
   },
   [Provider.ConfluenceCloud]: {
-    name: 'Confluence (Clover)',
+    name: 'Confluence (Cloud)',
     desc: 'Connect to search across your spaces, pages, blog posts, and attachments.',
     logoURI: 'integration_logos/confluence.svg',
     bgColor: 'blue.50',

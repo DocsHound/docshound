@@ -134,7 +134,7 @@ const GlobalIntegrationCard = ({
                   </Center>
                 ) : (
                   <VStack spacing={4}>
-                    {credentials
+                    {[...credentials]
                       .sort((a, b) => a.key.localeCompare(b.key))
                       .map(({ key, value }) => {
                         return (

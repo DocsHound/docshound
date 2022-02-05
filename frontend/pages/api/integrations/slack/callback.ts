@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Provider } from 'generated/graphql_types';
-import { callbackHandler } from 'shared/libs/integrations';
+import { callbackHandler } from 'shared/libs/integrations/server';
 
 const provider = Provider.Slack;
 

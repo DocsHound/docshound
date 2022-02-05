@@ -34,28 +34,29 @@ export const useMakeOAuthURL = () => {
   });
 
   const makeOAuthURL = async () => {
-    const redirect = `${window.location.protocol}//${window.location.host}/api/integrations/slack/callback`;
+    return '';
+    // const redirect = `${window.location.protocol}//${window.location.host}/api/integrations/slack/callback`;
 
-    const globalCred = await getGlobalAPICred();
+    // const globalCred = await getGlobalAPICred();
 
-    const clientID = globalCredentialMap(
-      globalCred.data?.publicGlobalApiCredential
-        ?.data as Array<GlobalCredentialOutputKv>
-    )[GlobalCredentialKey.SlackClientId];
-    if (!clientID) {
-      return null;
-    }
+    // const clientID = globalCredentialMap(
+    //   globalCred.data?.publicGlobalApiCredential
+    //     ?.data as Array<GlobalCredentialOutputKv>
+    // )[GlobalCredentialKey.SlackClientId];
+    // if (!clientID) {
+    //   return null;
+    // }
 
-    const sessionToken = supabase.auth.session()?.access_token;
-    if (!sessionToken) {
-      return null;
-    }
+    // const sessionToken = supabase.auth.session()?.access_token;
+    // if (!sessionToken) {
+    //   return null;
+    // }
 
-    return `https://slack.com/oauth/v2/authorize?scope=${botScopes.join(
-      ','
-    )}&user_scope=${userScopes.join(
-      ','
-    )}&client_id=${clientID}&redirect_uri=${redirect}&state=${sessionToken}`;
+    // return `https://slack.com/oauth/v2/authorize?scope=${botScopes.join(
+    //   ','
+    // )}&user_scope=${userScopes.join(
+    //   ','
+    // )}&client_id=${clientID}&redirect_uri=${redirect}&state=${sessionToken}`;
   };
 
   return makeOAuthURL;
