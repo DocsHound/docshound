@@ -20,7 +20,7 @@ export const user = {
 const results: Array<SearchResult> = [
   {
     __typename: 'Document',
-    provider: Provider.Confluence,
+    provider: Provider.ConfluenceCloud,
     docType: DocType.WebPage,
     title: 'RFC: Centering a div',
     desc: {
@@ -36,7 +36,7 @@ const results: Array<SearchResult> = [
   },
   {
     __typename: 'Document',
-    provider: Provider.Confluence,
+    provider: Provider.ConfluenceCloud,
     docType: DocType.WebPage,
     title: 'Tutorial on Centering Divs',
     desc: {

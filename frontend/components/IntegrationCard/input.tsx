@@ -6,17 +6,22 @@ import {
   InputGroup,
   InputRightElement,
 } from '@chakra-ui/react';
+import {
+  GlobalCredentialKey,
+  GlobalCredentialOutputKv,
+} from 'generated/graphql_types';
 import { Dispatch, SetStateAction, useState } from 'react';
-import { Credentials } from 'shared/libs/types';
 
 const CredentialsInput = ({
   name,
   value,
   setCredentials,
 }: {
-  name: string;
+  name: GlobalCredentialKey;
   value: string | null;
-  setCredentials: Dispatch<SetStateAction<Credentials | null>>;
+  setCredentials: Dispatch<
+    SetStateAction<Array<GlobalCredentialOutputKv> | null>
+  >;
 }) => {
   const [show, setShow] = useState(false);
   const handleClick = () => setShow(!show);
@@ -28,10 +33,10 @@ const CredentialsInput = ({
           value={value ?? ''}
           onChange={(e) => {
             setCredentials((prev) => {
-              return {
-                ...prev,
-                [name]: e.target.value,
-              };
+              const temp = { key: name, value: e.target.value };
+              if (!prev) return [temp];
+
+              return [...prev.filter(({ key }) => key !== name), temp];
             });
           }}
           type={show ? 'text' : 'password'}

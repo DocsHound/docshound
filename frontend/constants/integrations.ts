@@ -1,7 +1,12 @@
-import { DocType, Maybe, Provider } from 'generated/graphql_types';
+import {
+  DocType,
+  GlobalCredentialKey,
+  Maybe,
+  Provider,
+} from 'generated/graphql_types';
 import { Integration } from 'shared/libs/types';
 
-export const integrations: Record<Provider, Integration> = {
+export const integrations: { [key in Provider]: Integration } = {
   [Provider.Github]: {
     name: 'Github',
     desc: 'Connect to search across your public & private repos.',
@@ -26,9 +31,15 @@ export const integrations: Record<Provider, Integration> = {
     logoURI: 'integration_logos/google-drive.svg',
     bgColor: 'yellow.50',
   },
-  [Provider.Confluence]: {
-    name: 'Confluence',
-    desc: 'Connect to search across your wiki pages.',
+  [Provider.ConfluenceCloud]: {
+    name: 'Confluence (Clover)',
+    desc: 'Connect to search across your spaces, pages, blog posts, and attachments.',
+    logoURI: 'integration_logos/confluence.svg',
+    bgColor: 'blue.50',
+  },
+  [Provider.ConfluenceServer]: {
+    name: 'Confluence (Server)',
+    desc: 'Connect to search across your spaces, pages, blog posts, and attachments.',
     logoURI: 'integration_logos/confluence.svg',
     bgColor: 'blue.50',
   },
@@ -38,6 +49,38 @@ export const integrations: Record<Provider, Integration> = {
     logoURI: 'integration_logos/jira.svg',
     bgColor: 'blue.50',
   },
+};
+
+export const getOAuthInfo = (
+  provider: Provider
+  // TODO: change return type to GlobalCredentialKey
+): { clientIDKey: string; clientSecretKey: string; oauthURI: string } => {
+  return {
+    [Provider.Github]: { clientIDKey: '', clientSecretKey: '', oauthURI: '' },
+    [Provider.Notion]: { clientIDKey: '', clientSecretKey: '', oauthURI: '' },
+    [Provider.Slack]: {
+      clientIDKey: GlobalCredentialKey.SlackClientId,
+      clientSecretKey: GlobalCredentialKey.SlackClientSecret,
+      // See https://api.slack.com/methods/oauth.v2.access for examples of responses.
+      oauthURI: 'https://slack.com/api/oauth.v2.access',
+    },
+    [Provider.GoogleDrive]: {
+      clientIDKey: '',
+      clientSecretKey: '',
+      oauthURI: '',
+    },
+    [Provider.ConfluenceCloud]: {
+      clientIDKey: '',
+      clientSecretKey: '',
+      oauthURI: '',
+    },
+    [Provider.ConfluenceServer]: {
+      clientIDKey: '',
+      clientSecretKey: '',
+      oauthURI: '',
+    },
+    [Provider.Jira]: { clientIDKey: '', clientSecretKey: '', oauthURI: '' },
+  }[provider];
 };
 
 export const getIntegration = (

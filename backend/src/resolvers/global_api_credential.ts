@@ -1,14 +1,19 @@
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
-import * as GraphQLScalars from 'graphql-scalars';
 import { GlobalApiCredential } from '@generated/type-graphql';
-import { AppRole, Prisma } from '@prisma/client';
+import { AppRole } from '@prisma/client';
 import { GraphQLContext } from 'types';
 import { encrypt } from 'services/crypto';
 import { providerFields, publicProviderFields } from 'integrations/constants';
 import { arraysEqual } from 'utils/objects';
 import * as Slack from 'integrations/slack';
-import { getGlobalAPICredential } from 'shared/libs/credential';
-import { DecryptedGlobalApiCredential } from 'shared/libs/gql_types/credential';
+import {
+  getGlobalAPICredential,
+  globalCredentialMap,
+} from 'shared/libs/credential';
+import {
+  DecryptedGlobalApiCredential,
+  GlobalCredentialInputKV,
+} from 'shared/libs/gql_types/credential';
 import { Provider } from 'shared/libs/gql_types/integration';
 
 @Resolver()
@@ -18,23 +23,23 @@ export class MyGlobalApiCredentialResolver {
   async upsertGlobalApiCredential(
     @Ctx() ctx: GraphQLContext,
     @Arg('provider', (_type) => Provider) provider: Provider,
-    @Arg('credentialsJSON', (_type) => GraphQLScalars.JSONObjectResolver)
-    credentialsJSON: Prisma.JsonObject
+    @Arg('data', (_type) => [GlobalCredentialInputKV])
+    data: Array<GlobalCredentialInputKV>
   ): Promise<GlobalApiCredential> {
     const secretKey = process.env.API_CRED_AES_KEY;
     if (!secretKey) {
       throw new Error('missing API_CRED_AES_KEY envvar');
     }
     const expectedFields = providerFields(provider).sort();
-    const passedFields = Object.keys(credentialsJSON).sort();
+    const passedFields = data.map((d) => d.key).sort();
 
     if (!arraysEqual(passedFields, expectedFields)) {
       throw new Error(
-        `credentialsJSON for ${provider} has keys ${passedFields} but expects ${expectedFields}`
+        `data for ${provider} has keys ${passedFields} but expects ${expectedFields}`
       );
     }
 
-    const { iv, content } = encrypt(JSON.stringify(credentialsJSON), secretKey);
+    const { iv, content } = encrypt(JSON.stringify(data), secretKey);
 
     const ret = await ctx.prisma.globalApiCredential.upsert({
       where: { provider },
@@ -71,17 +76,21 @@ export class MyGlobalApiCredentialResolver {
       return {
         provider,
         exists: false,
-        credentialsJSON: Object.fromEntries(
-          providerFields(provider).map((key) => [key, null])
-        ),
+        data: providerFields(provider).map((key) => ({
+          key,
+          value: null,
+        })),
       };
+
+    const existMap = globalCredentialMap(exist);
 
     return {
       provider,
       exists: true,
-      credentialsJSON: Object.fromEntries(
-        providerFields(provider).map((key) => [key, exist[key] ?? null])
-      ),
+      data: providerFields(provider).map((key) => ({
+        key,
+        value: existMap[key] ?? null,
+      })),
     };
   }
 
@@ -100,17 +109,21 @@ export class MyGlobalApiCredentialResolver {
       return {
         provider,
         exists: false,
-        credentialsJSON: Object.fromEntries(
-          publicProviderFields(provider).map((key) => [key, null])
-        ),
+        data: publicProviderFields(provider).map((key) => ({
+          key,
+          value: null,
+        })),
       };
+
+    const existMap = globalCredentialMap(exist);
 
     return {
       provider,
       exists: true,
-      credentialsJSON: Object.fromEntries(
-        publicProviderFields(provider).map((key) => [key, exist[key] ?? null])
-      ),
+      data: publicProviderFields(provider).map((key) => ({
+        key,
+        value: existMap[key] ?? null,
+      })),
     };
   }
 }

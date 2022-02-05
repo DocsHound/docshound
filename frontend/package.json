@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate": "NODE_TLS_REJECT_UNAUTHORIZED=0 graphql-codegen --config codegen.yml"
+    "generate": "NODE_TLS_REJECT_UNAUTHORIZED=0 graphql-codegen --config codegen.yml",
+    "tsc": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@apollo/client": "^3.5.7",

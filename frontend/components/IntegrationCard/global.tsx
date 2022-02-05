@@ -24,12 +24,13 @@ import {
 import CredentialsInput from './input';
 import { BsFillCheckCircleFill, BsFillPenFill } from 'react-icons/bs';
 import {
+  GlobalCredentialOutputKv,
   namedOperations,
   Provider,
   useGlobalApiCredentialQuery,
   useUpsertGlobalApiCredentialMutation,
 } from 'generated/graphql_types';
-import { Credentials, Integration } from 'shared/libs/types';
+import { Integration } from 'shared/libs/types';
 
 const GlobalIntegrationCard = ({
   provider,
@@ -47,12 +48,15 @@ const GlobalIntegrationCard = ({
     refetchQueries: [namedOperations.Query.globalApiCredential],
   });
   const [exists, setExists] = useState<boolean | null>(null);
-  const [credentials, setCredentials] = useState<Credentials | null>(null);
+  const [credentials, setCredentials] =
+    useState<Array<GlobalCredentialOutputKv> | null>(null);
 
   useEffect(() => {
     if (data?.globalApiCredential) {
       setExists(data.globalApiCredential.exists);
-      setCredentials(data.globalApiCredential.credentialsJSON);
+      setCredentials(
+        data.globalApiCredential.data as Array<GlobalCredentialOutputKv>
+      );
     }
   }, [provider, data]);
 
@@ -95,10 +99,12 @@ const GlobalIntegrationCard = ({
             <chakra.form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (!credentials) return;
+
                 upsertCredentials({
                   variables: {
                     provider,
-                    credentialsJSON: credentials,
+                    data: credentials,
                   },
                 })
                   .then((res) => {
@@ -128,9 +134,9 @@ const GlobalIntegrationCard = ({
                   </Center>
                 ) : (
                   <VStack spacing={4}>
-                    {Object.entries(credentials)
-                      .sort()
-                      .map(([key, value]) => {
+                    {credentials
+                      .sort((a, b) => a.key.localeCompare(b.key))
+                      .map(({ key, value }) => {
                         return (
                           <CredentialsInput
                             key={key}

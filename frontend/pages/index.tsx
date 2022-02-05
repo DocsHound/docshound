@@ -27,7 +27,7 @@ import {
   LinkBox,
 } from '@chakra-ui/react';
 import NextLink from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NextPageWithLayout } from 'pages/types';
 import Dashboard from 'layouts/Dashboard';
 import { user, workspace } from 'mocks/data';
@@ -220,6 +220,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
               ))}
             <HStack fontSize="xs">
               {!!result.lastUpdated ? (
+                // @ts-ignore
                 <Text variant="secondary">
                   Updated{' '}
                   {humanReadableDuration(
@@ -229,6 +230,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
                   ago
                 </Text>
               ) : !!result.created ? (
+                // @ts-ignore
                 <Text variant="secondary">
                   Updated{' '}
                   {humanReadableDuration(new Date(result.created), new Date())}{' '}
@@ -238,6 +240,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
               {/* TODO: lookup avatar */}
               {/* <Avatar src={author.avatar} size="xs"></Avatar> */}
               {!!result.authors && (
+                // @ts-ignore
                 <Text variant="secondary">{authorsText(result.authors)}</Text>
               )}
             </HStack>
@@ -274,6 +277,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
                 </Heading>
               )}
               {!!result.created ? (
+                // @ts-ignore
                 <Text variant="secondary">
                   {/* TODO(richardwu): pass through meridian */}
                   {conditionalDatetime(new Date(result.created), true)}
@@ -429,6 +433,7 @@ const Home: NextPageWithLayout = () => {
                 ))}
               </VStack>
               <VStack align="flex-start">
+                {/* @ts-ignore */}
                 <Text variant="secondary" fontSize="xs">
                   Found {pluralize('result', searchResults.length, true)}
                 </Text>
@@ -551,6 +556,7 @@ const HeaderCenter = () => {
                 : 'purple.600'
             }
           ></Icon>
+          {/* @ts-ignore */}
           <Text fontSize="xs" variant="secondary">
             {readable}
           </Text>

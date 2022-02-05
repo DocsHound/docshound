@@ -1,7 +1,11 @@
 import {
+  GlobalCredentialKey,
+  GlobalCredentialOutputKv,
   Provider,
   usePublicGlobalApiCredentialLazyQuery,
 } from 'generated/graphql_types';
+import { globalCredentialMap } from '../credential';
+import { supabase } from '../supabase';
 
 export const slackClientIDKey = 'SLACK_CLIENT_ID';
 export const slackClientSecretKey = 'SLACK_CLIENT_SECRET';
@@ -29,16 +33,21 @@ export const useMakeOAuthURL = () => {
     },
   });
 
-  const makeOAuthURL = async (userId: string) => {
+  const makeOAuthURL = async () => {
     const redirect = `${window.location.protocol}//${window.location.host}/api/integrations/slack/callback`;
 
     const globalCred = await getGlobalAPICred();
 
-    const clientID =
-      globalCred.data?.publicGlobalApiCredential?.credentialsJSON?.[
-        slackClientIDKey
-      ];
+    const clientID = globalCredentialMap(
+      globalCred.data?.publicGlobalApiCredential
+        ?.data as Array<GlobalCredentialOutputKv>
+    )[GlobalCredentialKey.SlackClientId];
     if (!clientID) {
+      return null;
+    }
+
+    const sessionToken = supabase.auth.session()?.access_token;
+    if (!sessionToken) {
       return null;
     }
 
@@ -46,7 +55,7 @@ export const useMakeOAuthURL = () => {
       ','
     )}&user_scope=${userScopes.join(
       ','
-    )}&client_id=${clientID}&redirect_uri=${redirect}&state=${userId}`;
+    )}&client_id=${clientID}&redirect_uri=${redirect}&state=${sessionToken}`;
   };
 
   return makeOAuthURL;

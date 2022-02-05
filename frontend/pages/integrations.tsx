@@ -34,7 +34,8 @@ const Integrations: NextPageWithLayout = () => {
         status: router.query.status as AlertStatus,
       });
     }
-  }, [toast, router.query.message, router.query.status]);
+    // Do not include toast here: otherwise it will cause a double trigger.
+  }, [router.query.message, router.query.status]);
 
   return (
     <Box>

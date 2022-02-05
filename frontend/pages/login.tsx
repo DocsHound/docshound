@@ -14,7 +14,7 @@ import {
   Icon,
 } from '@chakra-ui/react';
 import DividerWithText from 'components/DividerWithText';
-import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import React, { Dispatch, SetStateAction, useState } from 'react';
 import { FaGithub, FaGoogle } from 'react-icons/fa';
 import { assertEnvVar } from 'shared/libs/envvars';
 import { supabase } from 'shared/libs/supabase';
@@ -119,7 +119,7 @@ const Login = ({ loginProviders }: { loginProviders: string[] }) => {
         { redirectTo: `${window.location.protocol}//${window.location.host}` }
       );
       // NB: this proceeds shortly before redirecting to OAuth Screen, not after a success!
-      logging.debug(`signing in with ${provider}: ${user}, ${session}`);
+      console.debug(`signing in with ${provider}: ${user}, ${session}`);
       if (error) throw error;
     } catch (err: any) {
       toast({

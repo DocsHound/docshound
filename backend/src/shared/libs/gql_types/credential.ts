@@ -1,7 +1,25 @@
 import { Prisma } from '@prisma/client';
-import { Field, ObjectType } from 'type-graphql';
+import { Field, InputType, ObjectType } from 'type-graphql';
 import * as GraphQLScalars from 'graphql-scalars';
-import { Provider } from './integration';
+import { GlobalCredentialKey, Provider } from './integration';
+
+@InputType()
+export class GlobalCredentialInputKV {
+  @Field((_type) => GlobalCredentialKey)
+  key!: GlobalCredentialKey;
+
+  @Field((_type) => String, { nullable: true })
+  value!: string | null;
+}
+
+@ObjectType()
+export class GlobalCredentialOutputKV {
+  @Field((_type) => GlobalCredentialKey)
+  key!: GlobalCredentialKey;
+
+  @Field((_type) => String, { nullable: true })
+  value!: string | null;
+}
 
 @ObjectType()
 export class DecryptedGlobalApiCredential {
@@ -11,8 +29,8 @@ export class DecryptedGlobalApiCredential {
   @Field((_type) => Boolean)
   exists!: boolean;
 
-  @Field((_type) => GraphQLScalars.JSONObjectResolver)
-  credentialsJSON!: Prisma.JsonObject;
+  @Field((_type) => [GlobalCredentialOutputKV])
+  data!: Array<GlobalCredentialOutputKV>;
 }
 
 @ObjectType()

@@ -8,10 +8,6 @@ export interface AppUser {
   role: AppRole;
 }
 
-export type Credentials = {
-  [key: string]: string | null;
-};
-
 export interface Integration {
   name: string;
   desc: string;

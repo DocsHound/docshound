@@ -8,9 +8,15 @@ import {
   SlackMessageDoc,
 } from 'services/elasticsearch';
 import { logger } from 'logging';
-import { getGlobalAPICredential } from 'shared/libs/credential';
+import {
+  getGlobalAPICredential,
+  globalCredentialMap,
+} from 'shared/libs/credential';
 import { DecryptedUserApiCredential } from 'shared/libs/gql_types/credential';
-import { Provider } from 'shared/libs/gql_types/integration';
+import {
+  GlobalCredentialKey,
+  Provider,
+} from 'shared/libs/gql_types/integration';
 import {
   Message,
   DocType,
@@ -22,19 +28,6 @@ import { Profile } from '@slack/web-api/dist/response/UsersProfileGetResponse';
 import { channelTypes } from '@slack/bolt/dist/types/events/message-events';
 
 // To add a new required token, simply add it to slackKeys.
-const slackClientIDKey = 'SLACK_CLIENT_ID';
-const slackClientSecretKey = 'SLACK_CLIENT_SECRET';
-const slackAppTokenKey = 'SLACK_APP_TOKEN';
-const slackBotTokenKey = 'SLACK_BOT_TOKEN';
-const slackSigningSecretKey = 'SLACK_SIGNING_SECRET';
-export const slackPublicKeys = [slackClientIDKey];
-export const slackKeys = [
-  slackClientIDKey,
-  slackClientSecretKey,
-  slackAppTokenKey,
-  slackBotTokenKey,
-  slackSigningSecretKey,
-];
 const provider = Provider.Slack;
 
 let app: App | null = null;
@@ -74,13 +67,15 @@ const createApp = async (prisma: PrismaClient) => {
   if (!creds) {
     return null;
   }
+  const credsMap = globalCredentialMap(creds);
 
   const app = new App({
-    token: creds[slackBotTokenKey],
-    clientId: creds[slackClientIDKey],
-    clientSecret: creds[slackClientSecretKey],
-    signingSecret: creds[slackSigningSecretKey],
-    appToken: creds[slackAppTokenKey],
+    token: credsMap[GlobalCredentialKey.SlackBotToken] ?? undefined,
+    clientId: credsMap[GlobalCredentialKey.SlackClientID] ?? undefined,
+    clientSecret: credsMap[GlobalCredentialKey.SlackClientSecret] ?? undefined,
+    signingSecret:
+      credsMap[GlobalCredentialKey.SlackSigningSecret] ?? undefined,
+    appToken: credsMap[GlobalCredentialKey.SlackAppToken] ?? undefined,
     socketMode: true,
   });
 

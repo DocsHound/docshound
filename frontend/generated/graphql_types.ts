@@ -15,14 +15,14 @@ export type Scalars = {
   Int: number;
   Float: number;
   /** The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
-  JSONObject: any;
+  JSONObject: Record<string, string>;
   /** The javascript `Date` as integer. Type represents date and time as number of milliseconds from start of UNIX epoch. */
   Timestamp: number;
 };
 
 export type DecryptedGlobalApiCredential = {
   __typename?: 'DecryptedGlobalApiCredential';
-  credentialsJSON: Scalars['JSONObject'];
+  data: Array<GlobalCredentialOutputKv>;
   exists: Scalars['Boolean'];
   provider: Provider;
 };
@@ -64,6 +64,26 @@ export type GlobalApiCredential = {
   updatedAt: Scalars['Timestamp'];
 };
 
+export type GlobalCredentialInputKv = {
+  key: GlobalCredentialKey;
+  value: InputMaybe<Scalars['String']>;
+};
+
+/** Key names which map to integration credential keys/secrets. */
+export enum GlobalCredentialKey {
+  SlackAppToken = 'SlackAppToken',
+  SlackBotToken = 'SlackBotToken',
+  SlackClientId = 'SlackClientID',
+  SlackClientSecret = 'SlackClientSecret',
+  SlackSigningSecret = 'SlackSigningSecret'
+}
+
+export type GlobalCredentialOutputKv = {
+  __typename?: 'GlobalCredentialOutputKV';
+  key: GlobalCredentialKey;
+  value: Maybe<Scalars['String']>;
+};
+
 export type Message = {
   __typename?: 'Message';
   author: Maybe<ProviderResource>;
@@ -83,7 +103,7 @@ export type Mutation = {
 
 
 export type MutationUpsertGlobalApiCredentialArgs = {
-  credentialsJSON: Scalars['JSONObject'];
+  data: Array<GlobalCredentialInputKv>;
   provider: Provider;
 };
 
@@ -96,7 +116,8 @@ export type MutationUpsertUserApiCredentialArgs = {
 
 /** Third-party integration/provider */
 export enum Provider {
-  Confluence = 'Confluence',
+  ConfluenceCloud = 'ConfluenceCloud',
+  ConfluenceServer = 'ConfluenceServer',
   Github = 'Github',
   GoogleDrive = 'GoogleDrive',
   Jira = 'Jira',
@@ -177,18 +198,18 @@ export type GlobalApiCredentialQueryVariables = Exact<{
 }>;
 
 
-export type GlobalApiCredentialQuery = { __typename?: 'Query', globalApiCredential: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, credentialsJSON: any } | null | undefined };
+export type GlobalApiCredentialQuery = { __typename?: 'Query', globalApiCredential: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, data: Array<{ __typename?: 'GlobalCredentialOutputKV', key: GlobalCredentialKey, value: string | null | undefined }> } | null | undefined };
 
 export type PublicGlobalApiCredentialQueryVariables = Exact<{
   provider: Provider;
 }>;
 
 
-export type PublicGlobalApiCredentialQuery = { __typename?: 'Query', publicGlobalApiCredential: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, credentialsJSON: any } | null | undefined };
+export type PublicGlobalApiCredentialQuery = { __typename?: 'Query', publicGlobalApiCredential: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, data: Array<{ __typename?: 'GlobalCredentialOutputKV', key: GlobalCredentialKey, value: string | null | undefined }> } | null | undefined };
 
 export type UpsertGlobalApiCredentialMutationVariables = Exact<{
   provider: Provider;
-  credentialsJSON: Scalars['JSONObject'];
+  data: Array<GlobalCredentialInputKv> | GlobalCredentialInputKv;
 }>;
 
 
@@ -208,7 +229,7 @@ export type UserApiCredentialQueryVariables = Exact<{
 }>;
 
 
-export type UserApiCredentialQuery = { __typename?: 'Query', userApiCredential: { __typename?: 'DecryptedUserApiCredential', userId: string, provider: Provider, credentialsJSON: any } | null | undefined };
+export type UserApiCredentialQuery = { __typename?: 'Query', userApiCredential: { __typename?: 'DecryptedUserApiCredential', userId: string, provider: Provider, credentialsJSON: Record<string, string> } | null | undefined };
 
 export type DocumentFieldsFragment = { __typename?: 'Document', provider: Provider, docType: DocType | null | undefined, title: string | null | undefined, url: string | null | undefined, lastUpdated: number | null | undefined, created: number | null | undefined, desc: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined }> };
 
@@ -267,7 +288,10 @@ export const GlobalApiCredentialDocument = gql`
   globalApiCredential(provider: $provider) {
     provider
     exists
-    credentialsJSON
+    data {
+      key
+      value
+    }
   }
 }
     `;
@@ -304,7 +328,10 @@ export const PublicGlobalApiCredentialDocument = gql`
   publicGlobalApiCredential(provider: $provider) {
     provider
     exists
-    credentialsJSON
+    data {
+      key
+      value
+    }
   }
 }
     `;
@@ -337,11 +364,8 @@ export type PublicGlobalApiCredentialQueryHookResult = ReturnType<typeof usePubl
 export type PublicGlobalApiCredentialLazyQueryHookResult = ReturnType<typeof usePublicGlobalApiCredentialLazyQuery>;
 export type PublicGlobalApiCredentialQueryResult = Apollo.QueryResult<PublicGlobalApiCredentialQuery, PublicGlobalApiCredentialQueryVariables>;
 export const UpsertGlobalApiCredentialDocument = gql`
-    mutation upsertGlobalApiCredential($provider: Provider!, $credentialsJSON: JSONObject!) {
-  upsertGlobalApiCredential(
-    provider: $provider
-    credentialsJSON: $credentialsJSON
-  ) {
+    mutation upsertGlobalApiCredential($provider: Provider!, $data: [GlobalCredentialInputKV!]!) {
+  upsertGlobalApiCredential(provider: $provider, data: $data) {
     id
   }
 }
@@ -362,7 +386,7 @@ export type UpsertGlobalApiCredentialMutationFn = Apollo.MutationFunction<Upsert
  * const [upsertGlobalApiCredentialMutation, { data, loading, error }] = useUpsertGlobalApiCredentialMutation({
  *   variables: {
  *      provider: // value for 'provider'
- *      credentialsJSON: // value for 'credentialsJSON'
+ *      data: // value for 'data'
  *   },
  * });
  */

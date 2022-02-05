@@ -1,11 +1,15 @@
 import { useContext, useEffect, useState } from 'react';
 import IntegrationCard from './base';
-import { Button, HStack, Icon, Text } from '@chakra-ui/react';
+import { Button, Icon } from '@chakra-ui/react';
 import { FaLink, FaUnlink } from 'react-icons/fa';
 import { useOAuthURL } from 'shared/libs/integrations';
 import { AppUserContext } from 'contexts';
-import { Provider, useUserApiCredentialQuery } from 'generated/graphql_types';
-import { Credentials, Integration } from 'shared/libs/types';
+import {
+  Provider,
+  Scalars,
+  useUserApiCredentialQuery,
+} from 'generated/graphql_types';
+import { Integration } from 'shared/libs/types';
 import useToast from 'hooks/useToast';
 import { BsFillQuestionCircleFill } from 'react-icons/bs';
 
@@ -22,7 +26,9 @@ const UserIntegrationCard = ({
   const { data, loading } = useUserApiCredentialQuery({
     variables: { provider },
   });
-  const [credentials, setCredentials] = useState<Credentials | null>(null);
+  const [credentials, setCredentials] = useState<Scalars['JSONObject'] | null>(
+    null
+  );
   const connected = credentials !== null;
   useEffect(() => {
     if (data?.userApiCredential) {
@@ -31,7 +37,7 @@ const UserIntegrationCard = ({
   }, [provider, data]);
   const buttonLabel = connected ? 'Disconnect' : 'Connect';
 
-  const { url, loading: urlLoading } = useOAuthURL(provider, user?.id);
+  const { url, loading: urlLoading } = useOAuthURL(provider);
 
   return (
     <IntegrationCard integration={integration}>
