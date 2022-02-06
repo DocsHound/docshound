@@ -12,100 +12,80 @@ export const integrations: { [key in Provider]: Integration } = {
     desc: 'Connect to search across your public & private repos.',
     logoURI: 'integration_logos/github.svg',
     bgColor: 'gray.100',
+    clientIDKey: '',
+    clientSecretKey: '',
+    oauthURI: '',
+    callbackName: 'github',
+    connectType: 'shared',
   },
   [Provider.Notion]: {
     name: 'Notion',
     desc: 'Connect to search across your workspaces and pages.',
     logoURI: 'integration_logos/notion.svg',
     bgColor: 'gray.100',
+    clientIDKey: '',
+    clientSecretKey: '',
+    oauthURI: '',
+    callbackName: 'notion',
+    connectType: 'shared',
   },
   [Provider.Slack]: {
     name: 'Slack',
     desc: 'Connect to search across channels, messages, and threads.',
     logoURI: 'integration_logos/slack.svg',
     bgColor: 'red.50',
+    clientIDKey: GlobalCredentialKey.SlackClientId,
+    clientSecretKey: GlobalCredentialKey.SlackClientSecret,
+    // See https://api.slack.com/methods/oauth.v2.access for examples of responses.
+    oauthURI: 'https://slack.com/api/oauth.v2.access',
+    callbackName: 'slack',
+    connectType: 'private',
   },
   [Provider.GoogleDrive]: {
     name: 'Google Drive',
     desc: 'Connect to search across files including docs and slides.',
     logoURI: 'integration_logos/google-drive.svg',
     bgColor: 'yellow.50',
+    clientIDKey: '',
+    clientSecretKey: '',
+    oauthURI: '',
+    callbackName: 'google_drive',
+    connectType: 'shared',
   },
   [Provider.ConfluenceCloud]: {
     name: 'Confluence (Cloud)',
     desc: 'Connect to search across your spaces, pages, blog posts, and attachments.',
     logoURI: 'integration_logos/confluence.svg',
     bgColor: 'blue.50',
+    clientIDKey: GlobalCredentialKey.ConfCloudClientId,
+    clientSecretKey: GlobalCredentialKey.ConfCloudClientSecret,
+    // See https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/#2--exchange-authorization-code-for-access-token.
+    oauthURI: 'https://auth.atlassian.com/oauth/token',
+    callbackName: 'confluence_cloud',
+    connectType: 'shared',
   },
   [Provider.ConfluenceServer]: {
     name: 'Confluence (Server)',
     desc: 'Connect to search across your spaces, pages, blog posts, and attachments.',
     logoURI: 'integration_logos/confluence.svg',
     bgColor: 'blue.50',
+    clientIDKey: '',
+    clientSecretKey: '',
+    oauthURI: '',
+    callbackName: 'confluence_server',
+    connectType: 'shared',
   },
   [Provider.Jira]: {
     name: 'Jira',
     desc: 'Connect to search across your issues and projects.',
     logoURI: 'integration_logos/jira.svg',
     bgColor: 'blue.50',
+    clientIDKey: '',
+    clientSecretKey: '',
+    oauthURI: '',
+    callbackName: 'jira',
+    connectType: 'shared',
   },
-};
-
-export const getOAuthInfo = (
-  provider: Provider
-  // TODO: change return type to GlobalCredentialKey
-): {
-  clientIDKey: string;
-  clientSecretKey: string;
-  oauthURI: string;
-  callbackName: string;
-} => {
-  return {
-    [Provider.Github]: {
-      clientIDKey: '',
-      clientSecretKey: '',
-      oauthURI: '',
-      callbackName: 'github',
-    },
-    [Provider.Notion]: {
-      clientIDKey: '',
-      clientSecretKey: '',
-      oauthURI: '',
-      callbackName: 'notion',
-    },
-    [Provider.Slack]: {
-      clientIDKey: GlobalCredentialKey.SlackClientId,
-      clientSecretKey: GlobalCredentialKey.SlackClientSecret,
-      // See https://api.slack.com/methods/oauth.v2.access for examples of responses.
-      oauthURI: 'https://slack.com/api/oauth.v2.access',
-      callbackName: 'slack',
-    },
-    [Provider.GoogleDrive]: {
-      clientIDKey: '',
-      clientSecretKey: '',
-      oauthURI: '',
-      callbackName: 'google_drive',
-    },
-    [Provider.ConfluenceCloud]: {
-      clientIDKey: GlobalCredentialKey.ConfCloudClientId,
-      clientSecretKey: GlobalCredentialKey.ConfCloudClientSecret,
-      // See https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/#2--exchange-authorization-code-for-access-token.
-      oauthURI: 'https://auth.atlassian.com/oauth/token',
-      callbackName: 'confluence_cloud',
-    },
-    [Provider.ConfluenceServer]: {
-      clientIDKey: '',
-      clientSecretKey: '',
-      oauthURI: '',
-      callbackName: 'confluence_server',
-    },
-    [Provider.Jira]: {
-      clientIDKey: '',
-      clientSecretKey: '',
-      oauthURI: '',
-      callbackName: 'jira',
-    },
-  }[provider];
 };
 
 export const getIntegration = (

@@ -1,13 +1,13 @@
-import { User } from '@supabase/supabase-js';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { User } from 'generated/graphql_types';
 import { createContext, useEffect, useState } from 'react';
 import { captureError } from 'shared/libs/errors';
 import { supabase } from 'shared/libs/supabase';
-import { AppUser } from 'shared/libs/types';
 
-export const AppUserContext = createContext<AppUser | null>(null);
+export const AppUserContext = createContext<User | null>(null);
 
-export const useAppUser = (user: User | null) => {
-  const [appUser, setAppUser] = useState<AppUser | null>(null);
+export const useAppUser = (user: SupabaseUser | null) => {
+  const [appUser, setAppUser] = useState<User | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -17,7 +17,7 @@ export const useAppUser = (user: User | null) => {
 
     (async () => {
       const { data, error } = await supabase
-        .from<AppUser>('User')
+        .from<User>('User')
         .select()
         .eq('id', user.id)
         .single();

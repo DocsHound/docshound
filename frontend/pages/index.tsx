@@ -15,7 +15,6 @@ import {
   Link,
   Avatar,
   Image,
-  useColorModeValue,
   Button,
   Heading,
   Spinner,
@@ -99,7 +98,7 @@ const DocLogo = ({
   docType,
 }: {
   provider: Provider;
-  docType: Maybe<DocType>;
+  docType: Maybe<DocType> | undefined;
 }) => {
   const docTypeSrc = getIntegration(provider, docType)['logoURI'];
   const providerSrc = getIntegration(provider)['logoURI'];
@@ -117,9 +116,9 @@ const MessageLogo = ({
   userURL,
 }: {
   provider: Provider;
-  avatar: Maybe<string>;
-  username: Maybe<string>;
-  userURL: Maybe<string>;
+  avatar: Maybe<string> | undefined;
+  username: Maybe<string> | undefined;
+  userURL: Maybe<string> | undefined;
 }) => {
   const providerSrc = getIntegration(provider)['logoURI'];
   const alt = username ?? `${getIntegration(provider)['name']} message`;
@@ -193,8 +192,6 @@ const authorsText = (authors: Array<ProviderResource>) => {
 };
 
 const ResultItem = ({ result }: { result: SearchResult }) => {
-  const linkColor = useColorModeValue('brand.500', 'brand.200');
-
   switch (result.__typename) {
     case 'Document':
       return (
@@ -206,7 +203,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
                 <NextLink href={result.url} passHref>
                   <Link
                     fontSize="lg"
-                    color={linkColor}
+                    colorScheme="brand"
                     fontWeight="semibold"
                     isExternal
                   >
@@ -220,8 +217,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
               ))}
             <HStack fontSize="xs">
               {!!result.lastUpdated ? (
-                // @ts-ignore
-                <Text variant="secondary">
+                <Text colorScheme="gray">
                   Updated{' '}
                   {humanReadableDuration(
                     new Date(result.lastUpdated),
@@ -230,8 +226,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
                   ago
                 </Text>
               ) : !!result.created ? (
-                // @ts-ignore
-                <Text variant="secondary">
+                <Text colorScheme="gray">
                   Updated{' '}
                   {humanReadableDuration(new Date(result.created), new Date())}{' '}
                   ago
@@ -240,8 +235,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
               {/* TODO: lookup avatar */}
               {/* <Avatar src={author.avatar} size="xs"></Avatar> */}
               {!!result.authors && (
-                // @ts-ignore
-                <Text variant="secondary">{authorsText(result.authors)}</Text>
+                <Text colorScheme="gray">{authorsText(result.authors)}</Text>
               )}
             </HStack>
             {!!result.desc && <ResultText desc={result.desc} />}
@@ -255,8 +249,8 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
           <MessageLogo
             provider={result.provider}
             avatar={result.avatar}
-            username={result.author?.resourceName ?? null}
-            userURL={result.author?.resourceURL ?? null}
+            username={result.author?.resourceName}
+            userURL={result.author?.resourceURL}
           />
           <VStack align="start" flex="1">
             <HStack>
@@ -264,7 +258,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
                 <NextLink href={result.url} passHref>
                   <Link
                     fontSize="lg"
-                    color={linkColor}
+                    colorScheme="brand"
                     fontWeight="semibold"
                     isExternal
                   >
@@ -277,8 +271,7 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
                 </Heading>
               )}
               {!!result.created ? (
-                // @ts-ignore
-                <Text variant="secondary">
+                <Text colorScheme="gray">
                   {/* TODO(richardwu): pass through meridian */}
                   {conditionalDatetime(new Date(result.created), true)}
                 </Text>
@@ -397,7 +390,7 @@ const Home: NextPageWithLayout = () => {
         <Box my="8">
           {loading ? (
             <Center>
-              <Spinner size="xl" color="brand.500" />
+              <Spinner size="xl" colorScheme="brand" />
             </Center>
           ) : query === '' ? (
             <Center>
@@ -433,8 +426,7 @@ const Home: NextPageWithLayout = () => {
                 ))}
               </VStack>
               <VStack align="flex-start">
-                {/* @ts-ignore */}
-                <Text variant="secondary" fontSize="xs">
+                <Text colorScheme="gray" fontSize="xs">
                   Found {pluralize('result', searchResults.length, true)}
                 </Text>
                 <Button
@@ -556,8 +548,7 @@ const HeaderCenter = () => {
                 : 'purple.600'
             }
           ></Icon>
-          {/* @ts-ignore */}
-          <Text fontSize="xs" variant="secondary">
+          <Text fontSize="xs" colorScheme="gray">
             {readable}
           </Text>
         </HStack>

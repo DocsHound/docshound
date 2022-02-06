@@ -18,7 +18,7 @@ const CredentialsInput = ({
   setCredentials,
 }: {
   name: GlobalCredentialKey;
-  value: string | null;
+  value: string | null | undefined;
   setCredentials: Dispatch<
     SetStateAction<Array<GlobalCredentialOutputKv> | null>
   >;

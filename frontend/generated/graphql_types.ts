@@ -20,11 +20,18 @@ export type Scalars = {
   Timestamp: number;
 };
 
+export enum AppRole {
+  Admin = 'ADMIN',
+  Superadmin = 'SUPERADMIN',
+  User = 'USER'
+}
+
 export type DecryptedGlobalApiCredential = {
   __typename?: 'DecryptedGlobalApiCredential';
   data: Array<GlobalCredentialOutputKv>;
   exists: Scalars['Boolean'];
   provider: Provider;
+  validSharedUserCreds: Scalars['Boolean'];
 };
 
 export type DecryptedUserApiCredential = {
@@ -45,20 +52,30 @@ export enum DocType {
 export type Document = {
   __typename?: 'Document';
   authors: Array<ProviderResource>;
-  created: Maybe<Scalars['Timestamp']>;
-  desc: Maybe<SearchResultText>;
-  docType: Maybe<DocType>;
-  lastUpdated: Maybe<Scalars['Timestamp']>;
+  created?: Maybe<Scalars['Timestamp']>;
+  desc?: Maybe<SearchResultText>;
+  docType?: Maybe<DocType>;
+  lastUpdated?: Maybe<Scalars['Timestamp']>;
   provider: Provider;
-  title: Maybe<Scalars['String']>;
-  url: Maybe<Scalars['String']>;
+  title?: Maybe<Scalars['String']>;
+  url?: Maybe<Scalars['String']>;
+};
+
+export type DummyAppRole = {
+  __typename?: 'DummyAppRole';
+  appRole: AppRole;
+};
+
+export type DummyUser = {
+  __typename?: 'DummyUser';
+  user: User;
 };
 
 export type GlobalApiCredential = {
   __typename?: 'GlobalApiCredential';
   createdAt: Scalars['Timestamp'];
   encryptedCredentials: Scalars['String'];
-  encryptedSharedUserCredentials: Maybe<Scalars['String']>;
+  encryptedSharedUserCredentials?: Maybe<Scalars['String']>;
   encryptionIV: Scalars['String'];
   id: Scalars['Int'];
   provider: Scalars['String'];
@@ -67,11 +84,12 @@ export type GlobalApiCredential = {
 
 export type GlobalCredentialInputKv = {
   key: GlobalCredentialKey;
-  value: InputMaybe<Scalars['String']>;
+  value?: InputMaybe<Scalars['String']>;
 };
 
 /** Key names which map to integration credential keys/secrets. */
 export enum GlobalCredentialKey {
+  ConfCloudBaseUrl = 'ConfCloudBaseURL',
   ConfCloudClientId = 'ConfCloudClientID',
   ConfCloudClientSecret = 'ConfCloudClientSecret',
   SlackAppToken = 'SlackAppToken',
@@ -84,18 +102,18 @@ export enum GlobalCredentialKey {
 export type GlobalCredentialOutputKv = {
   __typename?: 'GlobalCredentialOutputKV';
   key: GlobalCredentialKey;
-  value: Maybe<Scalars['String']>;
+  value?: Maybe<Scalars['String']>;
 };
 
 export type Message = {
   __typename?: 'Message';
-  author: Maybe<ProviderResource>;
-  avatar: Maybe<Scalars['String']>;
-  created: Maybe<Scalars['Timestamp']>;
-  group: Maybe<ProviderResource>;
-  message: Maybe<SearchResultText>;
+  author?: Maybe<ProviderResource>;
+  avatar?: Maybe<Scalars['String']>;
+  created?: Maybe<Scalars['Timestamp']>;
+  group?: Maybe<ProviderResource>;
+  message?: Maybe<SearchResultText>;
   provider: Provider;
-  url: Maybe<Scalars['String']>;
+  url?: Maybe<Scalars['String']>;
 };
 
 export type Mutation = {
@@ -121,7 +139,7 @@ export type MutationUpsertGlobalApiCredentialArgs = {
 export type MutationUpsertUserApiCredentialArgs = {
   credentialsJSON: Scalars['JSONObject'];
   provider: Provider;
-  userId: InputMaybe<Scalars['String']>;
+  userId?: InputMaybe<Scalars['String']>;
 };
 
 /** Third-party integration/provider */
@@ -137,24 +155,24 @@ export enum Provider {
 
 /** provider + doc type (if applicable) to filter by */
 export type ProviderDocType = {
-  docType: InputMaybe<DocType>;
+  docType?: InputMaybe<DocType>;
   provider: Provider;
 };
 
 export type ProviderResource = {
   __typename?: 'ProviderResource';
   resourceID: Scalars['String'];
-  resourceName: Maybe<Scalars['String']>;
-  resourceURL: Maybe<Scalars['String']>;
+  resourceName?: Maybe<Scalars['String']>;
+  resourceURL?: Maybe<Scalars['String']>;
 };
 
 export type Query = {
   __typename?: 'Query';
-  globalApiCredential: Maybe<DecryptedGlobalApiCredential>;
+  globalApiCredential?: Maybe<DecryptedGlobalApiCredential>;
   /** This returns Global API credentials that are allowed to be viewed by the public (e.g., public client ID). */
-  publicGlobalApiCredential: Maybe<DecryptedGlobalApiCredential>;
+  publicGlobalApiCredential?: Maybe<DecryptedGlobalApiCredential>;
   search: Array<SearchResult>;
-  userApiCredential: Maybe<DecryptedUserApiCredential>;
+  userApiCredential?: Maybe<DecryptedUserApiCredential>;
 };
 
 
@@ -169,7 +187,7 @@ export type QueryPublicGlobalApiCredentialArgs = {
 
 
 export type QuerySearchArgs = {
-  providerDocTypes: InputMaybe<Array<ProviderDocType>>;
+  providerDocTypes?: InputMaybe<Array<ProviderDocType>>;
   query: Scalars['String'];
 };
 
@@ -192,6 +210,15 @@ export enum TextType {
   Raw = 'Raw'
 }
 
+export type User = {
+  __typename?: 'User';
+  _count?: Maybe<UserCount>;
+  createdAt: Scalars['Timestamp'];
+  id: Scalars['String'];
+  role: AppRole;
+  updatedAt: Scalars['Timestamp'];
+};
+
 export type UserApiCredential = {
   __typename?: 'UserApiCredential';
   createdAt: Scalars['Timestamp'];
@@ -203,19 +230,24 @@ export type UserApiCredential = {
   userId: Scalars['String'];
 };
 
+export type UserCount = {
+  __typename?: 'UserCount';
+  apiCredentials: Scalars['Int'];
+};
+
 export type GlobalApiCredentialQueryVariables = Exact<{
   provider: Provider;
 }>;
 
 
-export type GlobalApiCredentialQuery = { __typename?: 'Query', globalApiCredential: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, data: Array<{ __typename?: 'GlobalCredentialOutputKV', key: GlobalCredentialKey, value: string | null | undefined }> } | null | undefined };
+export type GlobalApiCredentialQuery = { __typename?: 'Query', globalApiCredential?: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, validSharedUserCreds: boolean, data: Array<{ __typename?: 'GlobalCredentialOutputKV', key: GlobalCredentialKey, value?: string | null | undefined }> } | null | undefined };
 
 export type PublicGlobalApiCredentialQueryVariables = Exact<{
   provider: Provider;
 }>;
 
 
-export type PublicGlobalApiCredentialQuery = { __typename?: 'Query', publicGlobalApiCredential: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, data: Array<{ __typename?: 'GlobalCredentialOutputKV', key: GlobalCredentialKey, value: string | null | undefined }> } | null | undefined };
+export type PublicGlobalApiCredentialQuery = { __typename?: 'Query', publicGlobalApiCredential?: { __typename?: 'DecryptedGlobalApiCredential', provider: Provider, exists: boolean, data: Array<{ __typename?: 'GlobalCredentialOutputKV', key: GlobalCredentialKey, value?: string | null | undefined }> } | null | undefined };
 
 export type UpdateGlobalSharedUserCredentialMutationVariables = Exact<{
   provider: Provider;
@@ -247,19 +279,19 @@ export type UserApiCredentialQueryVariables = Exact<{
 }>;
 
 
-export type UserApiCredentialQuery = { __typename?: 'Query', userApiCredential: { __typename?: 'DecryptedUserApiCredential', userId: string, provider: Provider, credentialsJSON: Record<string, string> } | null | undefined };
+export type UserApiCredentialQuery = { __typename?: 'Query', userApiCredential?: { __typename?: 'DecryptedUserApiCredential', userId: string, provider: Provider, credentialsJSON: Record<string, string> } | null | undefined };
 
-export type DocumentFieldsFragment = { __typename?: 'Document', provider: Provider, docType: DocType | null | undefined, title: string | null | undefined, url: string | null | undefined, lastUpdated: number | null | undefined, created: number | null | undefined, desc: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined }> };
+export type DocumentFieldsFragment = { __typename?: 'Document', provider: Provider, docType?: DocType | null | undefined, title?: string | null | undefined, url?: string | null | undefined, lastUpdated?: number | null | undefined, created?: number | null | undefined, desc?: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined }> };
 
-export type MessageFieldsFragment = { __typename?: 'Message', provider: Provider, url: string | null | undefined, avatar: string | null | undefined, created: number | null | undefined, group: { __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined, resourceURL: string | null | undefined } | null | undefined, message: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, author: { __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined, resourceURL: string | null | undefined } | null | undefined };
+export type MessageFieldsFragment = { __typename?: 'Message', provider: Provider, url?: string | null | undefined, avatar?: string | null | undefined, created?: number | null | undefined, group?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined, resourceURL?: string | null | undefined } | null | undefined, message?: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, author?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined, resourceURL?: string | null | undefined } | null | undefined };
 
 export type SearchQueryVariables = Exact<{
   query: Scalars['String'];
-  providerDocTypes: InputMaybe<Array<ProviderDocType> | ProviderDocType>;
+  providerDocTypes?: InputMaybe<Array<ProviderDocType> | ProviderDocType>;
 }>;
 
 
-export type SearchQuery = { __typename?: 'Query', search: Array<{ __typename?: 'Document', provider: Provider, docType: DocType | null | undefined, title: string | null | undefined, url: string | null | undefined, lastUpdated: number | null | undefined, created: number | null | undefined, desc: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined }> } | { __typename?: 'Message', provider: Provider, url: string | null | undefined, avatar: string | null | undefined, created: number | null | undefined, group: { __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined, resourceURL: string | null | undefined } | null | undefined, message: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, author: { __typename?: 'ProviderResource', resourceID: string, resourceName: string | null | undefined, resourceURL: string | null | undefined } | null | undefined }> };
+export type SearchQuery = { __typename?: 'Query', search: Array<{ __typename?: 'Document', provider: Provider, docType?: DocType | null | undefined, title?: string | null | undefined, url?: string | null | undefined, lastUpdated?: number | null | undefined, created?: number | null | undefined, desc?: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined }> } | { __typename?: 'Message', provider: Provider, url?: string | null | undefined, avatar?: string | null | undefined, created?: number | null | undefined, group?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined, resourceURL?: string | null | undefined } | null | undefined, message?: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, author?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined, resourceURL?: string | null | undefined } | null | undefined }> };
 
 export const DocumentFieldsFragmentDoc = gql`
     fragment DocumentFields on Document {
@@ -310,6 +342,7 @@ export const GlobalApiCredentialDocument = gql`
       key
       value
     }
+    validSharedUserCreds
   }
 }
     `;

@@ -40,7 +40,7 @@ import { isMac } from 'shared/libs/platform';
 import useToast from 'hooks/useToast';
 import { supabase } from 'shared/libs/supabase';
 import { AppUserContext } from 'contexts';
-import { AppRole } from 'shared/libs/types';
+import { AppRole } from 'generated/graphql_types';
 
 interface Props {
   onClose: () => void;
@@ -197,18 +197,19 @@ const SidebarContent = ({
           }}
         />
 
-        {/* Admin mode */}
-        {appUser?.role === AppRole.ADMIN && (
-          <SidebarButton
-            collapsed={collapsed}
-            text={'Workspace Settings'}
-            icon={<BsFillGearFill />}
-            onClick={() => {
-              router.push('/settings');
-              onCollapse();
-            }}
-          />
-        )}
+        {/* Admin mode: show workspace settings */}
+        {!!appUser?.role &&
+          [AppRole.Superadmin, AppRole.Admin].includes(appUser.role) && (
+            <SidebarButton
+              collapsed={collapsed}
+              text={'Workspace Settings'}
+              icon={<BsFillGearFill />}
+              onClick={() => {
+                router.push('/settings');
+                onCollapse();
+              }}
+            />
+          )}
 
         {/* User popover menu */}
         <Menu>

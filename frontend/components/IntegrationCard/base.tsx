@@ -15,7 +15,7 @@ const IntegrationCard = ({
   children,
 }: {
   integration: Integration;
-  children: ReactNode;
+  children: ReactNode | Array<ReactNode>;
 }) => {
   return (
     <>

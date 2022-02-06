@@ -9,7 +9,11 @@ config:
   scalars:
     Timestamp: number
     JSONObject: Record<string, string>
-  avoidOptionals: true
+  # Cannot be true, otherwise our Query return types (which can be undefined)
+  # will not match the object types.
+  # To avoid a bunch of typing errors for queries, we just also need to check for
+  # undefined in additionl to null for fields (which is entirely valid since our query may omit fields).
+  avoidOptionals: false
 generates:
   generated/graphql_types.ts:
     plugins:

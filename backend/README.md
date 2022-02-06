@@ -7,7 +7,7 @@
 cp .example.env .env
 ```
 
-## Redis
+### Redis
 
 We use Redis for scheduling jobs via [Bull](https://github.com/OptimalBits/bull).
 
@@ -26,7 +26,7 @@ sudo apt install redis-server
 redis-cli
 ```
 
-## ElasticSearch
+### ElasticSearch
 
 Create docker network `docker network create elastic`.
 
@@ -42,7 +42,7 @@ Optionally, run Kibana:
 docker run --net elastic -p 127.0.0.1:5601:5601 -e "ELASTICSEARCH_HOSTS=http://docshound-es01:9200" docker.elastic.co/kibana/kibana:7.16.3
 ```
 
-## Supabase
+### Supabase
 
 Steps followed:
 
@@ -73,7 +73,7 @@ EXTERNAL_GOOGLE_REDIRECT_URI=http://localhost:8000/auth/v1/callback
 
 Restart the docker images with `docker-compose up`. Navigating to `http://localhost:8000/auth/v1/authorize?provider=google` should now redirect to the provider's OAuth consent screen.
 
-## Resetting DB
+### Resetting DB
 
 There may be cases where Prisma may prompt you to reset the DB (due to change in migration file), or you simply want to reset the entire DB and start from scratch.
 
@@ -82,3 +82,7 @@ If you let Prisma reset the schema, you may run into weird Supabase authenticati
 To completely reset the DB, simply stop the Supabase docker containers (`docker stop supabase-*`) and remove the DB image `docker container rm supabase-db`.
 
 Then run `yarn prisma migrate dev` to re-sync the DB.
+
+### Cannot find module `@generated/type-graphql`
+
+Whenever we modify our node modules (e.g., `yarn add/remove`), this will clear out the types under `node_modules/@generated/type-graphql`. The fix is to run `yarn build` to regenerate the Prisma types then restart the server.

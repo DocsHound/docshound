@@ -48,7 +48,6 @@ const UserIntegrationCard = ({
           leftIcon={<Icon as={connected ? FaUnlink : FaLink} />}
           colorScheme="brand"
           onClick={() => {
-            if (!user) return;
             if (!url) return;
             window.open(url, '_self');
           }}

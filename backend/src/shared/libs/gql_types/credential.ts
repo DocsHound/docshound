@@ -31,6 +31,9 @@ export class DecryptedGlobalApiCredential {
 
   @Field((_type) => [GlobalCredentialOutputKV])
   data!: Array<GlobalCredentialOutputKV>;
+
+  @Field((_type) => Boolean)
+  validSharedUserCreds!: boolean;
 }
 
 @ObjectType()

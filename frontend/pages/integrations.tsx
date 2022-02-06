@@ -7,35 +7,22 @@ import {
   Wrap,
   WrapItem,
   VStack,
-  AlertStatus,
 } from '@chakra-ui/react';
 import { UserIntegrationCard } from 'components/IntegrationCard';
 import Dashboard from 'layouts/Dashboard';
 import { workspace } from 'mocks/data';
 import { NextApiRequest } from 'next';
 import Head from 'next/head';
-import { useRouter } from 'next/router';
 import { NextPageWithLayout } from 'pages/types';
-import { useEffect } from 'react';
 import { FaLink } from 'react-icons/fa';
 import { authServerSideProps } from 'shared/libs/supabase';
-import useToast from 'hooks/useToast';
 import { Provider } from 'generated/graphql_types';
 import { integrations } from 'constants/integrations';
+import SharedIntegrationCard from 'components/IntegrationCard/shared';
+import { useHandleQueryMessage } from 'hooks/useQueryMessage';
 
 const Integrations: NextPageWithLayout = () => {
-  const router = useRouter();
-  const toast = useToast();
-
-  useEffect(() => {
-    if (router.query.message) {
-      toast({
-        title: router.query.message,
-        status: router.query.status as AlertStatus,
-      });
-    }
-    // Do not include toast here: otherwise it will cause a double trigger.
-  }, [router.query.message, router.query.status]);
+  useHandleQueryMessage();
 
   return (
     <Box>
@@ -53,19 +40,52 @@ const Integrations: NextPageWithLayout = () => {
             Integrations
           </Heading>
           <Text fontSize="sm">
-            Connect to an integration to search across your own files, messages,
-            and documents.
+            Connecting to an integration allows you to search across files,
+            messages, and documents with one search bar.
           </Text>
         </VStack>
-        <Wrap spacing="4" justify="start">
-          {Object.entries(integrations).map(([provider, integration]) => (
-            <WrapItem key={integration.name}>
-              <UserIntegrationCard
-                provider={provider as Provider}
-                integration={integration}
-              ></UserIntegrationCard>
-            </WrapItem>
-          ))}
+        {/* Private */}
+        <VStack p="4" align="start">
+          <Heading as="h2" size="md">
+            Private
+          </Heading>
+          <Text fontSize="sm">
+            Private integrations allow you to search across private messages or
+            files that only you have access to.
+          </Text>
+        </VStack>
+        <Wrap spacing="4" justify="start" p="4">
+          {Object.entries(integrations)
+            .filter(([_, integration]) => integration.connectType === 'private')
+            .map(([provider, integration]) => (
+              <WrapItem key={integration.name}>
+                <UserIntegrationCard
+                  provider={provider as Provider}
+                  integration={integration}
+                ></UserIntegrationCard>
+              </WrapItem>
+            ))}
+        </Wrap>
+        {/* Shared */}
+        <VStack p="4" align="start">
+          <Heading as="h2" size="md">
+            Shared
+          </Heading>
+          <Text fontSize="sm">
+            Shared integrations are set up once for the entire workspace.
+          </Text>
+        </VStack>
+        <Wrap spacing="4" justify="start" p="4">
+          {Object.entries(integrations)
+            .filter(([_, integration]) => integration.connectType === 'shared')
+            .map(([provider, integration]) => (
+              <WrapItem key={integration.name}>
+                <SharedIntegrationCard
+                  provider={provider as Provider}
+                  integration={integration}
+                ></SharedIntegrationCard>
+              </WrapItem>
+            ))}
         </Wrap>
       </Container>
     </Box>

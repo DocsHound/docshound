@@ -10,6 +10,7 @@ export const providerFields = (
     [Provider.ConfluenceCloud]: [
       GlobalCredentialKey.ConfCloudClientID,
       GlobalCredentialKey.ConfCloudClientSecret,
+      GlobalCredentialKey.ConfCloudBaseURL,
     ],
     [Provider.ConfluenceServer]: [],
     [Provider.Github]: [],

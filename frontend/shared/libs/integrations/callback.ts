@@ -10,7 +10,7 @@ import FormData from 'form-data';
 import fetch, { Response } from 'node-fetch';
 import { client } from 'shared/libs/apollo';
 import { supabase } from 'shared/libs/supabase';
-import { getOAuthInfo, integrations } from 'constants/integrations';
+import { integrations } from 'constants/integrations';
 import { globalCredentialMap } from '../credential';
 import { logger } from 'logging';
 
@@ -19,14 +19,20 @@ export const callbackHandler = async (
   res: NextApiResponse,
   provider: Provider
 ) => {
-  const { clientIDKey, clientSecretKey, oauthURI, callbackName } =
-    getOAuthInfo(provider);
+  const {
+    clientIDKey,
+    clientSecretKey,
+    oauthURI,
+    callbackName,
+    name: providerName,
+    connectType,
+  } = integrations[provider];
   const redirectURI = `https://${req.headers.host}/api/integrations/${callbackName}/callback`;
-  const providerName = integrations[provider].name;
+  const destPath = connectType === 'private' ? '/integrations' : '/settings';
 
   if ('error' in req.query) {
     res.redirect(
-      `/integrations?status=error&message=${encodeURIComponent(
+      `${destPath}?status=error&message=${encodeURIComponent(
         `Could not complete ${providerName} OAuth: ${req.query.error}`
       )}`
     );
@@ -40,7 +46,7 @@ export const callbackHandler = async (
 
   if (!user) {
     res.redirect(
-      `/integrations?status=error&message=${encodeURIComponent(
+      `${destPath}?status=error&message=${encodeURIComponent(
         'Could not retrieve your profile: please try again.'
       )}`
     );
@@ -49,7 +55,7 @@ export const callbackHandler = async (
 
   if (error) {
     res.redirect(
-      `/integrations?status=error&message=${encodeURIComponent(
+      `${destPath}?status=error&message=${encodeURIComponent(
         `Could not retrieve your profile: ${error.status} ${error.message}`
       )}`
     );
@@ -68,7 +74,7 @@ export const callbackHandler = async (
     ).data.globalApiCredential;
   } catch (err) {
     res.redirect(
-      `/integrations?status=error&message=${encodeURIComponent(
+      `${destPath}?status=error&message=${encodeURIComponent(
         'Could not retrieve API credentials from server.'
       )}`
     );
@@ -80,7 +86,7 @@ export const callbackHandler = async (
   const secret = creds[clientSecretKey];
   if (!secret) {
     res.redirect(
-      `/integrations?status=error&message=${encodeURIComponent(
+      `${destPath}?status=error&message=${encodeURIComponent(
         `Missing ${clientSecretKey}. A workspace admin should enable this in the workspace settings.`
       )}`
     );
@@ -89,7 +95,7 @@ export const callbackHandler = async (
   const clientID = creds[clientIDKey];
   if (!clientID) {
     res.redirect(
-      `/integrations?status=error&message=${encodeURIComponent(
+      `${destPath}?status=error&message=${encodeURIComponent(
         `Missing ${clientIDKey}. A workspace admin should enable this in the workspace settings.`
       )}`
     );
@@ -126,7 +132,7 @@ export const callbackHandler = async (
     });
   } else {
     res.redirect(
-      `/integrations?status=error&message=${encodeURIComponent(
+      `${destPath}?status=error&message=${encodeURIComponent(
         `Unsupported provider ${provider}`
       )}`
     );
@@ -139,7 +145,7 @@ export const callbackHandler = async (
       await resp?.text()
     );
     res.redirect(
-      `/integrations?status=error&message=${encodeURIComponent(
+      `${destPath}?status=error&message=${encodeURIComponent(
         `Could not connect to ${providerName}: ${resp?.status} ${resp?.statusText}`
       )}`
     );
@@ -151,7 +157,7 @@ export const callbackHandler = async (
   // Only Slack has ok parameter.
   if (provider === Provider.Slack && !respJSON.ok) {
     res.redirect(
-      `/integrations?status=error&message=${encodeURIComponent(
+      `${destPath}?status=error&message=${encodeURIComponent(
         `Could not connect to ${providerName}: ${respJSON.error}`
       )}`
     );
@@ -162,35 +168,32 @@ export const callbackHandler = async (
   // since we need server-side encryption.
 
   try {
-    if (provider === Provider.Slack) {
-      // User-specific token providers.
-      await client.mutate({
-        mutation: UpsertUserApiCredentialDocument,
-        variables: {
-          userId: user.id,
-          provider,
-          credentialsJSON: respJSON,
-        },
-      });
-    } else if (provider === Provider.ConfluenceCloud) {
-      // Shared access token providers.
-      await client.mutate({
-        mutation: UpdateGlobalSharedUserCredentialDocument,
-        variables: {
-          provider,
-          credentialsJSON: respJSON,
-        },
-      });
-    } else {
-      res.redirect(
-        `/integrations?status=error&message=${encodeURIComponent(
-          `Unsupported provider ${provider}`
-        )}`
-      );
+    switch (connectType) {
+      case 'private':
+        // User-specific token providers.
+        await client.mutate({
+          mutation: UpsertUserApiCredentialDocument,
+          variables: {
+            userId: user.id,
+            provider,
+            credentialsJSON: respJSON,
+          },
+        });
+        break;
+      case 'shared':
+        // Shared access token providers.
+        await client.mutate({
+          mutation: UpdateGlobalSharedUserCredentialDocument,
+          variables: {
+            provider,
+            credentialsJSON: respJSON,
+          },
+        });
+        break;
     }
   } catch (err) {
     res.redirect(
-      `/integrations?status=error&message=${encodeURIComponent(
+      `${destPath}?status=error&message=${encodeURIComponent(
         'Could not save API credentials to server.'
       )}`
     );
@@ -198,7 +201,7 @@ export const callbackHandler = async (
   }
 
   res.redirect(
-    `/integrations?status=success&message=${encodeURIComponent(
+    `${destPath}?status=success&message=${encodeURIComponent(
       `Your ${providerName} account has been connected!`
     )}`
   );

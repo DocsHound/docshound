@@ -5,6 +5,7 @@ import { MyGlobalApiCredentialResolver } from 'resolvers/global_api_credential';
 import { MyUserApiCredentialResolver } from 'resolvers/user_api_credential';
 import { SearchResolver } from 'resolvers/search';
 import { authChecker } from './auth';
+import { DummyAppRole, DummyUser } from 'shared/libs/gql_types/user';
 
 export const makeClient = () => {
   const prisma = new PrismaClient({
@@ -42,6 +43,7 @@ export const makeSchema = async () => {
       MyUserApiCredentialResolver,
       SearchResolver,
     ],
+    orphanedTypes: [DummyAppRole, DummyUser],
     validate: false,
     // Return date fields as unix seconds (instead of ISO string).
     dateScalarMode: 'timestamp',

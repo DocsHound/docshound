@@ -1,4 +1,4 @@
-import { getOAuthInfo } from 'constants/integrations';
+import { integrations } from 'constants/integrations';
 import {
   GlobalCredentialOutputKv,
   Provider,
@@ -18,7 +18,7 @@ export const useOAuthURL = (provider: Provider) => {
   });
 
   const makeOAuthURL = useCallback(async (): Promise<string | null> => {
-    const { clientIDKey, callbackName } = getOAuthInfo(provider);
+    const { clientIDKey, callbackName } = integrations[provider];
     const redirectURI = `${window.location.protocol}//${window.location.host}/api/integrations/${callbackName}/callback`;
 
     const globalCred = await getGlobalAPICred();

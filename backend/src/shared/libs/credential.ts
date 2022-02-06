@@ -6,7 +6,10 @@ import { Provider } from './gql_types/integration';
 export const getGlobalAPICredential = async (
   prisma: PrismaClient,
   provider: Provider
-): Promise<Array<GlobalCredentialOutputKV> | null> => {
+): Promise<{
+  globalCreds: Array<GlobalCredentialOutputKV>;
+  sharedUserCreds: Prisma.JsonObject | null;
+} | null> => {
   const cred = await prisma.globalApiCredential.findUnique({
     where: {
       provider,
@@ -19,13 +22,26 @@ export const getGlobalAPICredential = async (
     throw new Error('missing API_CRED_AES_KEY envvar');
   }
 
-  const exist = JSON.parse(
+  const globalCreds = JSON.parse(
     decrypt(
       { iv: cred.encryptionIV, content: cred.encryptedCredentials },
       secretKey
     )
   );
-  return exist;
+
+  const sharedUserCreds = cred.encryptedSharedUserCredentials
+    ? JSON.parse(
+        decrypt(
+          {
+            iv: cred.encryptionIV,
+            content: cred.encryptedSharedUserCredentials,
+          },
+          secretKey
+        )
+      )
+    : null;
+
+  return { globalCreds, sharedUserCreds };
 };
 
 export const globalCredentialMap = (kvs: Array<GlobalCredentialOutputKV>) => {

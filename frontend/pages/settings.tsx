@@ -1,3 +1,4 @@
+import React, { useContext, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -7,6 +8,8 @@ import {
   Wrap,
   WrapItem,
   VStack,
+  Spinner,
+  Center,
 } from '@chakra-ui/react';
 import { GlobalIntegrationCard } from 'components/IntegrationCard';
 import Dashboard from 'layouts/Dashboard';
@@ -16,10 +19,38 @@ import Head from 'next/head';
 import { NextPageWithLayout } from 'pages/types';
 import { BsFillGearFill } from 'react-icons/bs';
 import { authServerSideProps } from 'shared/libs/supabase';
-import { Provider } from 'generated/graphql_types';
+import { AppRole, Provider } from 'generated/graphql_types';
 import { integrations } from 'constants/integrations';
+import { AppUserContext } from 'contexts';
+import { useRouter } from 'next/router';
+import useToast from 'hooks/useToast';
+import { useHandleQueryMessage } from 'hooks/useQueryMessage';
 
 const Settings: NextPageWithLayout = () => {
+  const appUser = useContext(AppUserContext);
+  const router = useRouter();
+  const toast = useToast();
+
+  useEffect(() => {
+    if (appUser?.role === AppRole.User) {
+      toast({
+        title: 'You do not have access to this page.',
+        status: 'error',
+      });
+      router.replace('/');
+    }
+  }, [toast, router, appUser?.role]);
+
+  useHandleQueryMessage();
+
+  if (!appUser || appUser.role === AppRole.User) {
+    return (
+      <Center my="4">
+        <Spinner colorScheme="brand"></Spinner>
+      </Center>
+    );
+  }
+
   return (
     <Box>
       <Head>
@@ -37,18 +68,25 @@ const Settings: NextPageWithLayout = () => {
           </Heading>
           <Text fontSize="sm">
             Enable an integration for your workspace to allow your team members
-            to search across files and documents.
+            to search within these apps for files, messages and documents.
           </Text>
         </VStack>
         <Wrap spacing="4" justify="start">
-          {Object.entries(integrations).map(([provider, integration]) => (
-            <WrapItem key={integration.name}>
-              <GlobalIntegrationCard
-                provider={provider as Provider}
-                integration={integration}
-              ></GlobalIntegrationCard>
-            </WrapItem>
-          ))}
+          {Object.entries(integrations)
+            .filter(
+              ([_, integration]) =>
+                appUser?.role === AppRole.Superadmin ||
+                integration.connectType === 'shared'
+            )
+            .map(([provider, integration]) => (
+              <WrapItem key={integration.name}>
+                <GlobalIntegrationCard
+                  provider={provider as Provider}
+                  integration={integration}
+                  appUser={appUser}
+                ></GlobalIntegrationCard>
+              </WrapItem>
+            ))}
         </Wrap>
       </Container>
     </Box>

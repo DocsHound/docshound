@@ -125,17 +125,20 @@ export class MyGlobalApiCredentialResolver {
           key,
           value: null,
         })),
+        validSharedUserCreds: false,
       };
 
-    const existMap = globalCredentialMap(exist);
+    const globalCreds = globalCredentialMap(exist.globalCreds);
 
     return {
       provider,
       exists: true,
       data: providerFields(provider).map((key) => ({
         key,
-        value: existMap[key] ?? null,
+        value: globalCreds[key] ?? null,
       })),
+      // TODO(richardwu): need to have a field to check if user creds becomes invalid (e.g., refresh token expires).
+      validSharedUserCreds: !!exist.sharedUserCreds,
     };
   }
 
@@ -158,17 +161,20 @@ export class MyGlobalApiCredentialResolver {
           key,
           value: null,
         })),
+        validSharedUserCreds: false,
       };
 
-    const existMap = globalCredentialMap(exist);
+    const globalCreds = globalCredentialMap(exist.globalCreds);
 
     return {
       provider,
       exists: true,
       data: publicProviderFields(provider).map((key) => ({
         key,
-        value: existMap[key] ?? null,
+        value: globalCreds[key] ?? null,
       })),
+      // TODO(richardwu): need to have a field to check if user creds becomes invalid (e.g., refresh token expires).
+      validSharedUserCreds: !!exist.sharedUserCreds,
     };
   }
 }

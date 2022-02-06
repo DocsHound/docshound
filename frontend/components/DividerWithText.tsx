@@ -1,12 +1,5 @@
 import * as React from 'react';
-import {
-  Box,
-  Divider,
-  Flex,
-  FlexProps,
-  Text,
-  useColorModeValue,
-} from '@chakra-ui/react';
+import { Box, Divider, Flex, FlexProps, Text } from '@chakra-ui/react';
 
 const DividerWithText = (props: FlexProps) => {
   const { children, ...flexProps } = props;
@@ -15,12 +8,7 @@ const DividerWithText = (props: FlexProps) => {
       <Box flex="1">
         <Divider borderColor="currentcolor" />
       </Box>
-      <Text
-        as="span"
-        px="3"
-        color={useColorModeValue('gray.600', 'gray.400')}
-        fontWeight="medium"
-      >
+      <Text as="span" px="3" colorScheme="gray" fontWeight="medium">
         {children}
       </Text>
       <Box flex="1">

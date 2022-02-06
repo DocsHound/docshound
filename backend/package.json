@@ -20,6 +20,7 @@
     "@supabase/supabase-js": "^1.29.3",
     "@types/cookie-parser": "^1.4.2",
     "apollo-server": "^3.6.2",
+    "axios": "^0.25.0",
     "bull": "^4.5.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

@@ -39,7 +39,7 @@ export const getOrCreateMainApp = async (
   forceCreate: boolean = false
 ) => {
   if (app === null || forceCreate) {
-    logger.debug('creating new Slack app instance...');
+    logger.info('creating new Slack app instance...');
     const prev = app;
     app = await createApp(prisma);
     if (app) {
@@ -54,8 +54,6 @@ export const getOrCreateMainApp = async (
       await app.start();
       // TODO(richardwu): hide behind worker type flag
       await joinChannels(app);
-    } else {
-      logger.debug('could not create Slack app: no credentials?');
     }
     // Stop previous instance
     await prev?.stop();
@@ -66,9 +64,10 @@ export const getOrCreateMainApp = async (
 export const createApp = async (prisma: PrismaClient) => {
   const creds = await getGlobalAPICredential(prisma, provider);
   if (!creds) {
+    logger.warn('could not create Slack app: no global credentials');
     return null;
   }
-  const credsMap = globalCredentialMap(creds);
+  const credsMap = globalCredentialMap(creds.globalCreds);
 
   const app = new App({
     token: credsMap[GlobalCredentialKey.SlackBotToken] ?? undefined,
