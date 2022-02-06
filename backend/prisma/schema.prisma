@@ -12,8 +12,12 @@ datasource db {
 }
 
 enum AppRole {
-  USER
+  // For adminstrating global settings. For cloud-hosted, this will be one of our role accounts.
+  // For self-hosted, this will usually be the owner the DocsHound deployment.
+  // The first registered user will be autoset as a SUPERADMIN.
+  SUPERADMIN
   ADMIN
+  USER
 }
 
 // For all new tables, remember to create a manual migration to add RLS since we share the DB w/ Supabase.

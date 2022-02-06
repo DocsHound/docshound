@@ -38,7 +38,7 @@ export const startServer = async (
             },
             user: {
               id: DEV_USER_ID,
-              role: AppRole.ADMIN,
+              role: AppRole.SUPERADMIN,
               createdAt: new Date(Date.parse('2021-01-26 12:00:00')),
               updatedAt: new Date(Date.parse('2021-01-26 12:23:00')),
             },

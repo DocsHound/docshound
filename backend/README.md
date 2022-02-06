@@ -9,8 +9,21 @@ cp .example.env .env
 
 ## Redis
 
+We use Redis for scheduling jobs via [Bull](https://github.com/OptimalBits/bull).
+
+Start a redis instance:
+
 ```sh
 docker run --name redis -p 6379:6379 redis:6.2.6
+```
+
+To query for keys:
+
+```sh
+# Install redis + redis-cli
+sudo apt install redis-server
+
+redis-cli
 ```
 
 ## ElasticSearch

@@ -19,7 +19,7 @@ import { Provider } from 'shared/libs/gql_types/integration';
 
 @Resolver()
 export class MyGlobalApiCredentialResolver {
-  @Authorized(AppRole.ADMIN)
+  @Authorized(AppRole.SUPERADMIN)
   @Mutation((_returns) => GlobalApiCredential)
   async upsertGlobalApiCredential(
     @Ctx() ctx: GraphQLContext,
@@ -110,7 +110,7 @@ export class MyGlobalApiCredentialResolver {
     return ret;
   }
 
-  @Authorized(AppRole.ADMIN)
+  @Authorized(AppRole.SUPERADMIN)
   @Query((_returns) => DecryptedGlobalApiCredential, { nullable: true })
   async globalApiCredential(
     @Ctx() ctx: GraphQLContext,
