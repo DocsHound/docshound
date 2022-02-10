@@ -19,7 +19,7 @@ export enum GlobalCredentialKey {
   // Confluence Cloud.
   ConfCloudClientID = 'CONF_CLOUD_CLIENT_ID',
   ConfCloudClientSecret = 'CONF_CLOUD_CLIENT_SECRET',
-  ConfCloudBaseURL = 'CONF_CLOUD_BASE_URL',
+  ConfCloudSpaceName = 'CONF_CLOUD_SPACE_NAME',
   // Slack.
   SlackClientID = 'SLACK_CLIENT_ID',
   SlackClientSecret = 'SLACK_CLIENT_SECRET',

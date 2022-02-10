@@ -30,11 +30,16 @@ if (process.env.NODE_ENV !== 'production') {
   const MESSAGE = Symbol.for('message');
   const simpleTimestamp = format((info) => {
     // Move timestamp and service out.
-    const { timestamp, service, ...rest } = info;
+    const { timestamp, service, subservice, ...rest } = info;
     const simpled = simpleFormat.transform(rest);
     if (typeof simpled !== 'boolean') {
       // @ts-ignore
-      simpled[MESSAGE] = `[${service}] ${timestamp} ${simpled[MESSAGE]}`;
+      simpled[MESSAGE] = `[${service}${
+        subservice ? ` - ${subservice}` : ''
+      }] ${timestamp} ${
+        // @ts-ignore
+        simpled[MESSAGE]
+      }`;
     }
     return simpled;
   });

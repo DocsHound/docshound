@@ -52,6 +52,7 @@ import {
   Provider,
   ProviderDocType,
   ProviderResource,
+  SearchItem,
   SearchResult,
   SearchResultText,
   TextType,
@@ -70,7 +71,7 @@ const DualLogo = ({
   alt: string;
 }) => {
   return (
-    <Box position="relative" w="60px" h="60px">
+    <Box position="relative" w="60px" h="60px" minW="60px" minH="60px">
       <Image src={outerSrc} alt={alt} w="48px" h="48px"></Image>
       <Avatar
         bg="white"
@@ -87,7 +88,7 @@ const DualLogo = ({
 
 const SingleLogo = ({ src, alt }: { src: string; alt: string }) => {
   return (
-    <Box position="relative" w="60px" h="60px">
+    <Box position="relative" w="60px" h="60px" minW="60px" minH="60px">
       <Image src={src} alt={alt} w="48px" h="48px"></Image>
     </Box>
   );
@@ -148,7 +149,7 @@ const FilterLogo = ({
   docType,
 }: {
   provider: Provider;
-  docType: Maybe<DocType>;
+  docType: Maybe<DocType> | undefined;
 }) => {
   return (
     <Image
@@ -191,54 +192,54 @@ const authorsText = (authors: Array<ProviderResource>) => {
   return names.join(', ');
 };
 
-const ResultItem = ({ result }: { result: SearchResult }) => {
-  switch (result.__typename) {
+const ResultItem = ({ item }: { item: SearchItem }) => {
+  switch (item.__typename) {
     case 'Document':
       return (
         <HStack align="start" width="100%">
-          <DocLogo provider={result.provider} docType={result.docType} />
+          <DocLogo provider={item.provider} docType={item.docType} />
           <VStack align="start" flex="1">
-            {!!result.title &&
-              (!!result.url ? (
-                <NextLink href={result.url} passHref>
+            {!!item.title &&
+              (!!item.url ? (
+                <NextLink href={item.url} passHref>
                   <Link
                     fontSize="lg"
                     colorScheme="brand"
                     fontWeight="semibold"
                     isExternal
                   >
-                    {result.title}
+                    {item.title}
                   </Link>
                 </NextLink>
               ) : (
                 <Heading as="h3" fontWeight="semibold">
-                  {result.title}
+                  {item.title}
                 </Heading>
               ))}
             <HStack fontSize="xs">
-              {!!result.lastUpdated ? (
+              {!!item.lastUpdated ? (
                 <Text colorScheme="gray">
                   Updated{' '}
                   {humanReadableDuration(
-                    new Date(result.lastUpdated),
+                    new Date(item.lastUpdated),
                     new Date()
                   )}{' '}
                   ago
                 </Text>
-              ) : !!result.created ? (
+              ) : !!item.created ? (
                 <Text colorScheme="gray">
                   Updated{' '}
-                  {humanReadableDuration(new Date(result.created), new Date())}{' '}
+                  {humanReadableDuration(new Date(item.created), new Date())}{' '}
                   ago
                 </Text>
               ) : null}
               {/* TODO: lookup avatar */}
               {/* <Avatar src={author.avatar} size="xs"></Avatar> */}
-              {!!result.authors && (
-                <Text colorScheme="gray">{authorsText(result.authors)}</Text>
+              {!!item.authors && (
+                <Text colorScheme="gray">{authorsText(item.authors)}</Text>
               )}
             </HStack>
-            {!!result.desc && <ResultText desc={result.desc} />}
+            {!!item.desc && <ResultText desc={item.desc} />}
           </VStack>
         </HStack>
       );
@@ -247,49 +248,49 @@ const ResultItem = ({ result }: { result: SearchResult }) => {
       return (
         <HStack align="start" width="100%">
           <MessageLogo
-            provider={result.provider}
-            avatar={result.avatar}
-            username={result.author?.resourceName}
-            userURL={result.author?.resourceURL}
+            provider={item.provider}
+            avatar={item.avatar}
+            username={item.author?.resourceName}
+            userURL={item.author?.resourceURL}
           />
           <VStack align="start" flex="1">
             <HStack>
-              {!!result.url ? (
-                <NextLink href={result.url} passHref>
+              {!!item.url ? (
+                <NextLink href={item.url} passHref>
                   <Link
                     fontSize="lg"
                     colorScheme="brand"
                     fontWeight="semibold"
                     isExternal
                   >
-                    {result.author?.resourceName ?? 'Slack User'}
+                    {item.author?.resourceName ?? 'Slack User'}
                   </Link>
                 </NextLink>
               ) : (
                 <Heading as="h3" fontWeight="semibold">
-                  {result.author?.resourceName ?? 'Slack User'}
+                  {item.author?.resourceName ?? 'Slack User'}
                 </Heading>
               )}
-              {!!result.created ? (
+              {!!item.created ? (
                 <Text colorScheme="gray">
                   {/* TODO(richardwu): pass through meridian */}
-                  {conditionalDatetime(new Date(result.created), true)}
+                  {conditionalDatetime(new Date(item.created), true)}
                 </Text>
               ) : null}
-              {!!result.group &&
-                (!!result.group.resourceURL ? (
-                  <NextLink href={result.group?.resourceURL} passHref>
+              {!!item.group &&
+                (!!item.group.resourceURL ? (
+                  <NextLink href={item.group?.resourceURL} passHref>
                     <Link isExternal fontWeight="semibold">
-                      #{result.group.resourceName ?? 'Slack Channel'}
+                      #{item.group.resourceName ?? 'Slack Channel'}
                     </Link>
                   </NextLink>
                 ) : (
                   <Text fontWeight="semibold">
-                    #{result.group.resourceName ?? 'Slack Channel'}
+                    #{item.group.resourceName ?? 'Slack Channel'}
                   </Text>
                 ))}
             </HStack>
-            {!!result.message && <ResultText desc={result.message} />}
+            {!!item.message && <ResultText desc={item.message} />}
           </VStack>
         </HStack>
       );
@@ -312,9 +313,11 @@ const Home: NextPageWithLayout = () => {
     searchRef.current?.focus();
   }, []);
   const [search, { data, loading, error }] = useSearchLazyQuery();
-  const searchResults: Array<SearchResult> = data?.search
-    ? (data.search as Array<SearchResult>)
+  const searchItems: Array<SearchItem> = data?.search
+    ? (data.search.items as Array<SearchItem>)
     : [];
+  const counts = data?.search ? data.search.counts : [];
+  const totalCount = counts.map((a) => a.count).reduce((a, b) => a + b, 0);
   const [handledError, setHandledError] = useState(false);
   const [filterProviders, setFilterProviders] = useState<
     Record<string, ProviderDocType>
@@ -399,7 +402,7 @@ const Home: NextPageWithLayout = () => {
                 messages.
               </Heading>
             </Center>
-          ) : searchResults.length === 0 ? (
+          ) : searchItems.length === 0 ? (
             <VStack alignItems="flex-start" mx="4">
               <Text>
                 Your search{' '}
@@ -421,13 +424,13 @@ const Home: NextPageWithLayout = () => {
           ) : (
             <Flex direction="row" align="flex-start" justify="space-between">
               <VStack maxW="800" align="start" spacing="5">
-                {searchResults.map((result, idx) => (
-                  <ResultItem key={idx} result={result} />
+                {searchItems.map((result, idx) => (
+                  <ResultItem key={idx} item={result} />
                 ))}
               </VStack>
               <VStack align="flex-start">
                 <Text colorScheme="gray" fontSize="xs">
-                  Found {pluralize('result', searchResults.length, true)}
+                  Found {pluralize('result', totalCount, true)}
                 </Text>
                 <Button
                   leftIcon={<Search2Icon />}
@@ -449,63 +452,47 @@ const Home: NextPageWithLayout = () => {
                 >
                   All
                 </Button>
-                {Object.entries(groupBy(searchResults, 'provider'))
-                  .map(([provider, pResults]) =>
-                    Object.entries(countBy(pResults, 'docType')).map(
-                      ([docType, count]) => {
-                        return {
-                          provider: provider as Provider,
-                          docType:
-                            docType === 'undefined'
-                              ? null
-                              : (docType as DocType),
-                          count,
-                        };
-                      }
-                    )
-                  )
-                  .flat()
-                  .map(({ provider, docType, count }) => {
-                    const key = `${provider},${docType}`;
-                    const selected = key in filterProviders;
+                {counts.map(({ provider, docType, count }) => {
+                  const key = `${provider},${docType}`;
+                  const selected = key in filterProviders;
 
-                    return (
-                      <Button
-                        key={key}
-                        leftIcon={
-                          <FilterLogo provider={provider} docType={docType} />
+                  return (
+                    <Button
+                      key={key}
+                      leftIcon={
+                        <FilterLogo provider={provider} docType={docType} />
+                      }
+                      variant={selected ? 'solid' : 'ghost'}
+                      colorScheme="brand"
+                      w="100%"
+                      justifyContent="flex-start"
+                      px="5"
+                      onClick={() => {
+                        let newProviders = { ...filterProviders };
+                        if (selected) {
+                          if (key in newProviders) delete newProviders[key];
+                        } else {
+                          newProviders = {
+                            ...newProviders,
+                            [key]: { provider, docType },
+                          };
                         }
-                        variant={selected ? 'solid' : 'ghost'}
-                        colorScheme="brand"
-                        w="100%"
-                        justifyContent="flex-start"
-                        px="5"
-                        onClick={() => {
-                          let newProviders = { ...filterProviders };
-                          if (selected) {
-                            if (key in newProviders) delete newProviders[key];
-                          } else {
-                            newProviders = {
-                              ...newProviders,
-                              [key]: { provider, docType },
-                            };
-                          }
-                          setFilterProviders(newProviders);
-                          // Always need to re-query.
-                          performSearch(newProviders);
-                        }}
-                      >
-                        <HStack spacing="4" justify="space-between">
-                          <Text style={{ textOverflow: 'ellipsis' }}>
-                            {getIntegration(provider, docType)['name']}
-                          </Text>
-                          <Text style={{ fontVariant: 'tabular-nums' }}>
-                            {count}
-                          </Text>
-                        </HStack>
-                      </Button>
-                    );
-                  })}
+                        setFilterProviders(newProviders);
+                        // Always need to re-query.
+                        performSearch(newProviders);
+                      }}
+                    >
+                      <HStack spacing="4" justify="space-between">
+                        <Text style={{ textOverflow: 'ellipsis' }}>
+                          {getIntegration(provider, docType)['name']}
+                        </Text>
+                        <Text style={{ fontVariant: 'tabular-nums' }}>
+                          {count}
+                        </Text>
+                      </HStack>
+                    </Button>
+                  );
+                })}
               </VStack>
             </Flex>
           )}

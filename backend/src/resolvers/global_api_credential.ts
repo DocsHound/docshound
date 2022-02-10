@@ -5,11 +5,12 @@ import { AppRole, Prisma } from '@prisma/client';
 import { GraphQLContext } from 'types';
 import { encrypt } from 'services/crypto';
 import { providerFields, publicProviderFields } from 'integrations/constants';
-import { arraysEqual } from 'utils/objects';
+import { arraysEqual } from 'shared/libs/objects';
 import * as Slack from 'integrations/slack';
 import {
   getGlobalAPICredential,
   globalCredentialMap,
+  updateGlobalSharedUserCredential,
 } from 'shared/libs/credential';
 import {
   DecryptedGlobalApiCredential,
@@ -74,40 +75,11 @@ export class MyGlobalApiCredentialResolver {
     @Arg('credentialsJSON', (_type) => GraphQLScalars.JSONObjectResolver)
     credentialsJSON: Prisma.JsonObject
   ): Promise<GlobalApiCredential> {
-    const secretKey = process.env.API_CRED_AES_KEY;
-    if (!secretKey) {
-      throw new Error('missing API_CRED_AES_KEY envvar');
-    }
-
-    // TODO(richardwu): wrap in PRISMA transaction once
-    // https://github.com/prisma/prisma/issues/9846#issuecomment-1029837126 merges.
-    const creds = await ctx.prisma.globalApiCredential.findUnique({
-      where: {
-        provider,
-      },
-    });
-    if (!creds) {
-      throw new Error(`no existing API credentials for ${provider}`);
-    }
-
-    const { content } = encrypt(
-      JSON.stringify(credentialsJSON),
-      secretKey,
-      creds.encryptionIV
+    return updateGlobalSharedUserCredential(
+      ctx.prisma,
+      provider,
+      credentialsJSON
     );
-
-    const ret = await ctx.prisma.globalApiCredential.update({
-      where: {
-        provider,
-      },
-      data: {
-        encryptedSharedUserCredentials: content,
-      },
-    });
-
-    // TODO(richardwu): Recreate client with new credentials if applicable.
-
-    return ret;
   }
 
   @Authorized(AppRole.SUPERADMIN)

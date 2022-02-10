@@ -20,7 +20,7 @@ import {
 import {
   Message,
   DocType,
-  SearchResult,
+  SearchItem,
   Document,
   TextType,
 } from 'shared/libs/gql_types/search';
@@ -372,7 +372,7 @@ export const search = async (
   userCred: DecryptedUserApiCredential,
   query: string,
   args?: SearchAllArguments
-): Promise<Array<typeof SearchResult>> => {
+): Promise<Array<typeof SearchItem>> => {
   const userToken = extractUserToken(userCred);
   if (!userToken) {
     throw new Error(
@@ -388,7 +388,7 @@ export const search = async (
     ...args,
   });
 
-  const results: Array<typeof SearchResult> = [];
+  const results: Array<typeof SearchItem> = [];
 
   rawResults.messages?.matches?.forEach((match) => {
     const msg: Message = {

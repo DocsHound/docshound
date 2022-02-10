@@ -1,11 +1,18 @@
 query search($query: String!, $providerDocTypes: [ProviderDocType!]) {
   search(query: $query, providerDocTypes: $providerDocTypes) {
-    ... on Document {
-      ...DocumentFields
-    }
+    items {
+      ... on Document {
+        ...DocumentFields
+      }
 
-    ... on Message {
-      ...MessageFields
+      ... on Message {
+        ...MessageFields
+      }
+    }
+    counts {
+      provider
+      docType
+      count
     }
   }
 }

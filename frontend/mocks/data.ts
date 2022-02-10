@@ -1,7 +1,7 @@
 import {
   DocType,
   Provider,
-  SearchResult,
+  SearchItem,
   TextType,
 } from 'generated/graphql_types';
 
@@ -17,11 +17,11 @@ export const user = {
   avatar: 'https://bit.ly/kent-c-dodds',
 };
 
-const results: Array<SearchResult> = [
+const items: Array<SearchItem> = [
   {
     __typename: 'Document',
     provider: Provider.ConfluenceCloud,
-    docType: DocType.WebPage,
+    docType: DocType.Page,
     title: 'RFC: Centering a div',
     desc: {
       text: 'This is an rfc for centering divs ... Centering a div is rather difficult because of the complexities of CSS ... Every div matters',
@@ -37,7 +37,7 @@ const results: Array<SearchResult> = [
   {
     __typename: 'Document',
     provider: Provider.ConfluenceCloud,
-    docType: DocType.WebPage,
+    docType: DocType.Page,
     title: 'Tutorial on Centering Divs',
     desc: {
       text: 'Centering divs are quite difficult: that is why we wrote this 20-minute tutorial on how to center a div.',

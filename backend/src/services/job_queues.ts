@@ -1,16 +1,22 @@
-import { Prisma, PrismaClient } from '@prisma/client';
-import Queue, { JobOptions } from 'bull';
-import { getAllContent } from 'integrations/confluence_cloud';
+import { PrismaClient } from '@prisma/client';
+import axios from 'axios';
+import Queue, { DoneCallback, JobOptions } from 'bull';
+import { indexContent } from 'integrations/confluence_cloud';
 import { createApp, indexChannels, joinChannels } from 'integrations/slack';
 import { logger } from 'logging';
+import { timedeltaMS } from 'shared/libs/time';
+import { Logger } from 'winston';
 import { makeClient } from './prisma';
 
 // TODO(richardwu): hide behind worker feature flag
 // NB: data we pass into queues must be serializable
 // (e.g., PrismaClient will not work: cause job to never be scheduled).
-const slackMessageQueue = new Queue<null>('slack messages batch index');
-const confCloudFullBatchQueue = new Queue<null>(
-  'confluence cloud full batch index'
+const slackMessageIncrQueue = new Queue<null>(
+  'slack-messages-incremental-index'
+);
+const confCloudFullQueue = new Queue<null>('confluence-cloud-full-index');
+const confCloudIncrQueue = new Queue<null>(
+  'confluence-cloud-incremental-index'
 );
 // TODO: make these configurable settings.
 const repeatableQueues: Array<{
@@ -18,63 +24,98 @@ const repeatableQueues: Array<{
   jobArgs: JobOptions;
 }> = [
   {
-    queue: slackMessageQueue,
-    jobArgs: { repeat: { every: 2 * 60 * 1000 * 1000 } },
+    queue: slackMessageIncrQueue,
+    jobArgs: { repeat: { every: timedeltaMS({ hours: 2 }) } },
   },
   {
-    queue: confCloudFullBatchQueue,
-    // jobArgs: { repeat: { every: 6 * 60 * 1000 * 1000 } },
-    jobArgs: { repeat: { every: 10 * 1000 } },
+    queue: confCloudIncrQueue,
+    jobArgs: { repeat: { every: timedeltaMS({ hours: 2 }) } },
+    // jobArgs: { repeat: { every: timedeltaMS({ seconds: 10 }) } },
+  },
+  {
+    queue: confCloudFullQueue,
+    jobArgs: { repeat: { every: timedeltaMS({ hours: 6 }) } },
+    // jobArgs: { repeat: { every: timedeltaMS({ seconds: 10 }) } },
   },
 ];
 
-slackMessageQueue.process(async (job, done) => {
+slackMessageIncrQueue.process(async (job, done) => {
+  const curLogger = logger.child({ subservice: 'slack-message-incr-queue' });
   let prisma: PrismaClient | null = null;
   try {
     prisma = makeClient();
     const app = await createApp(prisma);
     if (!app) {
-      logger.warn(
-        'Slack has no global credentials, skipping batch message indexing.'
-      );
+      curLogger.warn('no global credentials, skipping batch message indexing');
       done();
       return;
     }
     job.progress(10);
 
-    logger.info('Joining outstanding Slack channels...');
+    curLogger.info('joining outstanding channels...');
     await joinChannels(app);
     job.progress(20);
 
-    logger.info('Indexing Slack messages in all channels since last fetch...');
+    curLogger.info('indexing messages in all channels since last fetch...');
     await indexChannels(prisma, app);
     job.progress(100);
 
-    logger.info('Done Slack message indexing.');
+    curLogger.info('done indexing');
     done();
   } catch (err) {
-    logger.error('Error while indexing Slack messages: %s', err);
+    curLogger.error('failed indexing: %s', err);
+    done(err as Error);
   } finally {
     await prisma?.$disconnect();
   }
 });
 
-confCloudFullBatchQueue.process(async (job, done) => {
+const indexConfCloud = async (
+  curLogger: Logger,
+  fullIndex: boolean,
+  done: DoneCallback
+) => {
   let prisma: PrismaClient | null = null;
   try {
     prisma = makeClient();
-    logger.info('Fetching Confluence Cloud all content...');
-    const resp = await getAllContent(prisma);
-    logger.info(resp);
+    curLogger.info(
+      'indexing %s content...',
+      fullIndex ? 'full historical' : 'incremental'
+    );
+    await indexContent(prisma, { fullIndex });
+    curLogger.info('done indexing');
     done();
   } catch (err) {
-    logger.error('Error while indexing Confluence Cloud: %s', err);
+    if (axios.isAxiosError(err)) {
+      curLogger.error(
+        'failed indexing: %s\n%s\nRequest: %s\nResponse: %s',
+        err.message,
+        err.stack,
+        err.request,
+        err.response?.data
+      );
+    } else {
+      curLogger.error('failed indexing: %s', err);
+    }
+    done(err as Error);
   } finally {
     await prisma?.$disconnect();
   }
+};
+
+confCloudIncrQueue.process(async (_job, done) => {
+  const curLogger = logger.child({ subservice: 'conf-cloud-incr-queue' });
+  await indexConfCloud(curLogger, false, done);
 });
 
-export const scheduleBatchJobs = async (prisma: PrismaClient) => {
+confCloudFullQueue.process(async (_job, done) => {
+  const curLogger = logger.child({ subservice: 'conf-cloud-full-queue' });
+  await indexConfCloud(curLogger, true, done);
+});
+
+export const scheduleBatchJobs = async () => {
+  const curLogger = logger.child({ subservice: 'schedule-job-queue' });
+
   // Remove previously scheduled jobs (in case parameters changed).
   for (const { queue } of repeatableQueues) {
     for (const job of await queue.getRepeatableJobs()) {
@@ -82,18 +123,18 @@ export const scheduleBatchJobs = async (prisma: PrismaClient) => {
     }
   }
 
-  logger.info('Scheduling %d batch jobs...', repeatableQueues.length);
+  curLogger.info('scheduling %d batch jobs...', repeatableQueues.length);
   const ret = await Promise.allSettled(
     repeatableQueues.map(({ queue, jobArgs: repeatArgs }) =>
       queue.add(null, repeatArgs)
     )
   );
-  logger.info(
-    'Scheduled %d batch jobs!',
-    ret.filter((r) => r.status !== 'fulfilled').length
-  );
   for (const { queue } of repeatableQueues) {
-    logger.info('%s # jobs: %s', queue.name, await queue.getRepeatableCount());
+    curLogger.info(
+      '%s # jobs: %s',
+      queue.name,
+      await queue.getRepeatableCount()
+    );
   }
   return ret;
 };

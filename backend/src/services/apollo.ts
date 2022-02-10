@@ -7,7 +7,7 @@ import http from 'http';
 import https from 'https';
 import { GraphQLContext } from 'types';
 import { logger } from 'logging';
-import { corsDevConfig } from 'utils/cors';
+import { corsDevConfig } from 'shared/libs/cors';
 import { anonSupabase } from 'services/supabase';
 
 const DEV_USER_ID = '568a9bb6-da37-4225-a48a-bb6686ad3a38';

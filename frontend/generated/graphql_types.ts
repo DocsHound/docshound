@@ -43,10 +43,11 @@ export type DecryptedUserApiCredential = {
 
 /** If applicable, specifies the type of the document within the provider (e.g., "DOC" for Google Docs, "SLIDE" for Google Slides, "FILE" for Slack files). */
 export enum DocType {
+  BlogPost = 'BlogPost',
   Doc = 'Doc',
   File = 'File',
-  Slide = 'Slide',
-  WebPage = 'WebPage'
+  Page = 'Page',
+  Slide = 'Slide'
 }
 
 export type Document = {
@@ -80,6 +81,7 @@ export type GlobalApiCredential = {
   id: Scalars['Int'];
   provider: Scalars['String'];
   updatedAt: Scalars['Timestamp'];
+  validSharedUserCredentials: Scalars['Boolean'];
 };
 
 export type GlobalCredentialInputKv = {
@@ -89,9 +91,9 @@ export type GlobalCredentialInputKv = {
 
 /** Key names which map to integration credential keys/secrets. */
 export enum GlobalCredentialKey {
-  ConfCloudBaseUrl = 'ConfCloudBaseURL',
   ConfCloudClientId = 'ConfCloudClientID',
   ConfCloudClientSecret = 'ConfCloudClientSecret',
+  ConfCloudSpaceName = 'ConfCloudSpaceName',
   SlackAppToken = 'SlackAppToken',
   SlackBotToken = 'SlackBotToken',
   SlackClientId = 'SlackClientID',
@@ -171,7 +173,7 @@ export type Query = {
   globalApiCredential?: Maybe<DecryptedGlobalApiCredential>;
   /** This returns Global API credentials that are allowed to be viewed by the public (e.g., public client ID). */
   publicGlobalApiCredential?: Maybe<DecryptedGlobalApiCredential>;
-  search: Array<SearchResult>;
+  search: SearchResult;
   userApiCredential?: Maybe<DecryptedUserApiCredential>;
 };
 
@@ -196,7 +198,20 @@ export type QueryUserApiCredentialArgs = {
   provider: Provider;
 };
 
-export type SearchResult = Document | Message;
+export type SearchCount = {
+  __typename?: 'SearchCount';
+  count: Scalars['Float'];
+  docType?: Maybe<DocType>;
+  provider: Provider;
+};
+
+export type SearchItem = Document | Message;
+
+export type SearchResult = {
+  __typename?: 'SearchResult';
+  counts: Array<SearchCount>;
+  items: Array<SearchItem>;
+};
 
 export type SearchResultText = {
   __typename?: 'SearchResultText';
@@ -291,7 +306,7 @@ export type SearchQueryVariables = Exact<{
 }>;
 
 
-export type SearchQuery = { __typename?: 'Query', search: Array<{ __typename?: 'Document', provider: Provider, docType?: DocType | null | undefined, title?: string | null | undefined, url?: string | null | undefined, lastUpdated?: number | null | undefined, created?: number | null | undefined, desc?: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined }> } | { __typename?: 'Message', provider: Provider, url?: string | null | undefined, avatar?: string | null | undefined, created?: number | null | undefined, group?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined, resourceURL?: string | null | undefined } | null | undefined, message?: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, author?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined, resourceURL?: string | null | undefined } | null | undefined }> };
+export type SearchQuery = { __typename?: 'Query', search: { __typename?: 'SearchResult', items: Array<{ __typename?: 'Document', provider: Provider, docType?: DocType | null | undefined, title?: string | null | undefined, url?: string | null | undefined, lastUpdated?: number | null | undefined, created?: number | null | undefined, desc?: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, authors: Array<{ __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined }> } | { __typename?: 'Message', provider: Provider, url?: string | null | undefined, avatar?: string | null | undefined, created?: number | null | undefined, group?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined, resourceURL?: string | null | undefined } | null | undefined, message?: { __typename?: 'SearchResultText', text: string, type: TextType } | null | undefined, author?: { __typename?: 'ProviderResource', resourceID: string, resourceName?: string | null | undefined, resourceURL?: string | null | undefined } | null | undefined }>, counts: Array<{ __typename?: 'SearchCount', provider: Provider, docType?: DocType | null | undefined, count: number }> } };
 
 export const DocumentFieldsFragmentDoc = gql`
     fragment DocumentFields on Document {
@@ -564,11 +579,18 @@ export type UserApiCredentialQueryResult = Apollo.QueryResult<UserApiCredentialQ
 export const SearchDocument = gql`
     query search($query: String!, $providerDocTypes: [ProviderDocType!]) {
   search(query: $query, providerDocTypes: $providerDocTypes) {
-    ... on Document {
-      ...DocumentFields
+    items {
+      ... on Document {
+        ...DocumentFields
+      }
+      ... on Message {
+        ...MessageFields
+      }
     }
-    ... on Message {
-      ...MessageFields
+    counts {
+      provider
+      docType
+      count
     }
   }
 }

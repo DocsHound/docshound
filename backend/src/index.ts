@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import 'reflect-metadata';
 
-import { verifyEnvVars } from 'utils/verify_envvars';
+import { verifyEnvVars } from 'shared/libs/verify_envvars';
 verifyEnvVars();
 
 import cors from 'cors';
@@ -10,7 +10,7 @@ import express, { RequestHandler } from 'express';
 import { startServer } from 'services/apollo';
 import { makeClient, makeSchema } from 'services/prisma';
 import { makeHTTPServer, useTLS } from 'services/httpserver';
-import { corsDevConfig } from 'utils/cors';
+import { corsDevConfig } from 'shared/libs/cors';
 import { initIndices } from 'services/elasticsearch';
 import { getOrCreateMainApp } from 'integrations/slack';
 import { logger } from 'logging';
@@ -55,7 +55,7 @@ const main = async () => {
 
   // Schedule batch jobs.
   // TODO(richardwu): track jobs somewhere
-  const jobs = await scheduleBatchJobs(prisma);
+  const jobs = await scheduleBatchJobs();
 
   httpServer.listen({ port: process.env.PORT }, async () => {
     serverListening = true;

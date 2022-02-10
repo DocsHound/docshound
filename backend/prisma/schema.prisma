@@ -41,6 +41,8 @@ model GlobalApiCredential {
   encryptedCredentials           String
   // For shared admin-user access tokens (e.g., Confluence Cloud).
   encryptedSharedUserCredentials String?
+  // In case the refresh token expires, we need to mark this as invalid to re-prompt admin.
+  validSharedUserCredentials     Boolean  @default(true)
   createdAt                      DateTime @default(now())
   updatedAt                      DateTime @default(now()) @updatedAt
 }
@@ -66,4 +68,12 @@ model SlackChannelIndexLog {
   createdAt DateTime @default(now())
 
   @@id([channelID, latestTS])
+}
+
+model ConfCloudIndexLog {
+  id             Int      @id @default(autoincrement())
+  fullIndex      Boolean
+  latestModified DateTime
+  nResults       Int
+  createdAt      DateTime @default(now())
 }

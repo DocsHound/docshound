@@ -7,8 +7,9 @@ export const client = new Client({
   node: process.env.ELASTICSEARCH_URL,
 });
 
-enum ElasticIndex {
+export enum ElasticIndex {
   SlackMessages = 'slack-messages',
+  ConfCloudContent = 'conf-cloud-content',
 }
 
 const indexMappings = {
@@ -40,6 +41,109 @@ const indexMappings = {
       },
     },
   },
+
+  [ElasticIndex.ConfCloudContent]: {
+    properties: {
+      id: {
+        type: 'keyword',
+      },
+      type: {
+        type: 'keyword',
+      },
+      status: {
+        type: 'keyword',
+      },
+      created: {
+        type: 'date',
+      },
+      updated: {
+        type: 'date',
+      },
+      title: {
+        type: 'text',
+      },
+      body: {
+        type: 'text',
+      },
+      baseURL: {
+        type: 'keyword',
+      },
+      // Includes page title (so text since this may be too long).
+      webLink: {
+        type: 'text',
+      },
+      tinyLink: {
+        type: 'keyword',
+      },
+      // Can be array/list.
+      labels: {
+        type: 'keyword',
+      },
+      version: {
+        type: 'long',
+      },
+      // TODO: do we need to store all of this?
+      createdBy: {
+        properties: {
+          accountID: {
+            type: 'keyword',
+          },
+          accountType: {
+            type: 'keyword',
+          },
+          email: {
+            type: 'keyword',
+          },
+          publicName: {
+            type: 'keyword',
+          },
+          profilePicURL: {
+            type: 'keyword',
+          },
+        },
+      },
+      // TODO: do we need to store all of this?
+      updatedBy: {
+        properties: {
+          accountID: {
+            type: 'keyword',
+          },
+          accountType: {
+            type: 'keyword',
+          },
+          email: {
+            type: 'keyword',
+          },
+          publicName: {
+            type: 'keyword',
+          },
+          profilePicURL: {
+            type: 'keyword',
+          },
+        },
+      },
+      // Space. TODO: necessary to store everything? Or do a lookup?
+      space: {
+        properties: {
+          id: {
+            type: 'keyword',
+          },
+          key: {
+            type: 'keyword',
+          },
+          name: {
+            type: 'keyword',
+          },
+          type: {
+            type: 'keyword',
+          },
+          webLink: {
+            type: 'keyword',
+          },
+        },
+      },
+    },
+  },
 };
 
 export const initIndices = async () => {
@@ -68,7 +172,41 @@ export interface SlackMessageDoc {
   permalink: string | null;
 }
 
-const slackMapping = {};
+export interface ConfCloudDoc {
+  id: string;
+  type: string;
+  status: string;
+  created: string;
+  updated: string;
+  title: string;
+  body: string;
+  baseURL: string;
+  webLink: string | null;
+  tinyLink: string | null;
+  labels: Array<string>;
+  version: number;
+  createdBy: {
+    accountID: string;
+    accountType: string;
+    email: string;
+    publicName: string;
+    profilePicURL: string;
+  };
+  updatedBy: {
+    accountID: string;
+    accountType: string;
+    email: string;
+    publicName: string;
+    profilePicURL: string;
+  };
+  space: {
+    id: string;
+    key: string;
+    name: string;
+    type: string;
+    webLink: string | null;
+  };
+}
 
 interface ESSearchResult<T, Highlight = undefined> {
   _shards: {
@@ -113,15 +251,72 @@ export const indexSlackMessage = async (
   await client.indices.refresh({ index: ElasticIndex.SlackMessages });
 };
 
-export const searchSlackMessages = async (query: string) => {
+export const indexConfCloudContent = async (
+  ...docs: Array<ESIndexPayload<ConfCloudDoc>>
+) => {
+  await Promise.all(
+    docs.map(({ id, doc }) =>
+      client.index({
+        id,
+        index: ElasticIndex.ConfCloudContent,
+        body: doc,
+      })
+    )
+  );
+  await client.indices.refresh({ index: ElasticIndex.ConfCloudContent });
+};
+
+const queryParams = (
+  index: ElasticIndex,
+  query: string
+): Record<string, any> => {
+  switch (index) {
+    case ElasticIndex.SlackMessages:
+      return {
+        query: {
+          match: { text: query },
+        },
+      };
+    case ElasticIndex.ConfCloudContent:
+      return {
+        query: {
+          match: { body: { query, fuzziness: 'AUTO' } },
+        },
+      };
+  }
+};
+
+export const countQuery = async (
+  query: string,
+  // TODO: change to provider.
+  index: ElasticIndex
+): Promise<number | null> => {
+  const resp = await client.count<{ count: number }>({
+    index,
+    body: {
+      ...queryParams(index, query),
+    },
+  });
+  if (resp.statusCode !== 200) {
+    logger.error(
+      `received non-200 status while counting ${index} for "${query}": ${resp.warnings}`
+    );
+    return null;
+  }
+
+  return resp.body.count;
+};
+
+export const searchSlackMessages = async (
+  query: string
+): Promise<Array<SlackMessageDoc> | null> => {
+  const index = ElasticIndex.SlackMessages;
   const resp = await client.search<
     ESSearchResult<SlackMessageDoc, { text: Array<string> }>
   >({
-    index: ElasticIndex.SlackMessages,
+    index,
     body: {
-      query: {
-        match: { text: query },
-      },
+      ...queryParams(index, query),
       highlight: {
         // Don't fragment, but still highlight.
         number_of_fragments: 1,
@@ -137,7 +332,7 @@ export const searchSlackMessages = async (query: string) => {
   });
   if (resp.statusCode !== 200) {
     logger.error(
-      `received non-200 status while searching Slack messages for "${query}": ${resp.warnings}`
+      `received non-200 status while searching ${index} for "${query}": ${resp.warnings}`
     );
     return null;
   }
@@ -151,5 +346,49 @@ export const searchSlackMessages = async (query: string) => {
     }
 
     return h._source;
+  });
+};
+
+export const searchConfCloudContent = async (
+  query: string
+): Promise<Array<ConfCloudDoc> | null> => {
+  const index = ElasticIndex.ConfCloudContent;
+  const resp = await client.search<
+    ESSearchResult<ConfCloudDoc, { body: Array<string> }>
+  >({
+    index,
+    body: {
+      ...queryParams(index, query),
+      highlight: {
+        number_of_fragments: 3,
+        fragment_size: 100,
+        pre_tags: ['**'],
+        post_tags: ['**'],
+        fields: {
+          body: {},
+        },
+      },
+      sort: ['_score', { updated: 'desc' }],
+    },
+  });
+  if (resp.statusCode !== 200) {
+    logger.error(
+      `received non-200 status while searching ${index} for "${query}": ${resp.warnings}`
+    );
+    return null;
+  }
+
+  return resp.body.hits.hits.map((h) => {
+    if (!!h.highlight?.body) {
+      return {
+        ...h._source,
+        body: h.highlight.body.map((s) => s.replace(/\n/g, '')).join('…'),
+      };
+    }
+
+    return {
+      ...h._source,
+      body: h._source.body.replace(/\n/g, ''),
+    };
   });
 };

@@ -8,6 +8,7 @@ const useToast = (options?: UseToastOptions) =>
     duration: 5000,
     isClosable: true,
     position: 'top',
+    variant: 'solid',
     ...options,
   });
 

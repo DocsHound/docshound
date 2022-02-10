@@ -9,7 +9,8 @@ import {
 import { Provider } from './integration';
 
 export enum DocType {
-  WebPage = 'WEB_PAGE',
+  Page = 'PAGE',
+  BlogPost = 'BLOG_POST',
   Doc = 'DOC',
   Slide = 'SLIDE',
   File = 'FILE',
@@ -61,6 +62,7 @@ class SearchResultText {
   type!: TextType;
 }
 
+// TODO: union type for different providers.
 @ObjectType()
 export class Document {
   @Field((_type) => Provider)
@@ -87,6 +89,7 @@ export class Document {
   created!: Date | null;
 }
 
+// TODO: union type for different providers.
 @ObjectType()
 export class Message {
   @Field((_type) => Provider)
@@ -111,8 +114,8 @@ export class Message {
   created!: Date | null;
 }
 
-export const SearchResult = createUnionType({
-  name: 'SearchResult',
+export const SearchItem = createUnionType({
+  name: 'SearchItem',
   types: () => [Document, Message] as const,
   resolveType: (value) => {
     if ('message' in value) return Message;
@@ -120,3 +123,24 @@ export const SearchResult = createUnionType({
     return undefined;
   },
 });
+
+@ObjectType()
+export class SearchCount {
+  @Field((_type) => Provider)
+  provider!: Provider;
+
+  @Field((_type) => DocType, { nullable: true })
+  docType!: DocType | null;
+
+  @Field()
+  count!: number;
+}
+
+@ObjectType()
+export class SearchResult {
+  @Field((_type) => [SearchItem])
+  items!: Array<typeof SearchItem>;
+
+  @Field((_type) => [SearchCount])
+  counts!: Array<SearchCount>;
+}
